@@ -302,7 +302,7 @@ const menuItems = [
     { title: 'Study Timer', icon: 'timer', screen: 'StudyTimer', color: '#FF5722' },
     { title: 'Materials', icon: 'book-open-variant', screen: 'StudyMaterials', color: '#673AB7' },
     { title: 'Calculator', icon: 'calculator-variant', screen: 'GradeCalculator', color: '#00BCD4' },
-    { title: 'Analytics', icon: 'chart-line', screen: 'PerformanceAnalytics', color: '#E91E63' },
+    { title: 'AI Report Card', icon: 'robot-confused', screen: 'AIReportCard', color: '#E91E63' },
     { title: 'Achievements', icon: 'trophy-variant', screen: 'Achievements', color: '#FFC107' },
     { title: 'Leaderboard', icon: 'trophy', screen: 'Leaderboard', color: '#FFB300' },
 
@@ -316,6 +316,7 @@ const menuItems = [
 
     // Admin
     { title: 'Digital ID', icon: 'card-account-details', screen: 'DigitalIDCard', color: '#00897B' },
+    { title: 'Messages', icon: 'message-text', screen: 'ChatList', color: theme.colors.primary },
     { title: 'Leave', icon: 'calendar-remove', screen: 'StudentLeave', color: '#C62828' },
     { title: 'Fee Status', icon: 'currency-usd', screen: 'FeeStatus', color: '#388E3C' },
     { title: 'Notices', icon: 'bulletin-board', screen: 'NoticeBoard', color: '#607D8B' },

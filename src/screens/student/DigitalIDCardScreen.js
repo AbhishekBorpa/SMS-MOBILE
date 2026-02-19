@@ -1,8 +1,13 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import axios from 'axios';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useContext, useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import { useContext, useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Dimensions,
+    RefreshControl,
+    ScrollView,
     StyleSheet,
     Text,
     View
@@ -10,6 +15,7 @@ import {
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppHeader from '../../components/AppHeader';
+import API_URL from '../../config/api';
 import { theme } from '../../constants/theme';
 import { AuthContext } from '../../context/AuthContext';
 
@@ -17,84 +23,144 @@ const { width } = Dimensions.get('window');
 
 const DigitalIDCardScreen = ({ navigation }) => {
     const { userInfo } = useContext(AuthContext);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [studentProfile, setStudentProfile] = useState(userInfo);
+    const [studentClass, setStudentClass] = useState('N/A');
 
-    const qrValue = userInfo?._id || 'NO_ID';
+    useEffect(() => {
+        fetchStudentDetails();
+    }, []);
+
+    const fetchStudentDetails = async () => {
+        try {
+            const token = await SecureStore.getItemAsync('userToken');
+            const config = { headers: { Authorization: `Bearer ${token}` } };
+
+            // 1. Refresh User Profile
+            const userRes = await axios.get(`${API_URL}/auth/me`, config);
+            setStudentProfile(userRes.data);
+
+            // 2. Fetch Class Info
+            const classRes = await axios.get(`${API_URL}/classes/student`, config);
+            if (classRes.data && classRes.data.length > 0) {
+                // If multiple classes, show the first one or combine them
+                setStudentClass(classRes.data[0].name);
+            } else {
+                setStudentClass('Enrolled Student');
+            }
+
+        } catch (error) {
+            console.log('Error fetching ID card details:', error);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchStudentDetails();
+    };
+
+    const qrValue = JSON.stringify({
+        id: studentProfile?._id,
+        name: studentProfile?.name,
+        role: studentProfile?.role,
+        validParams: true
+    });
 
     return (
         <SafeAreaView style={styles.container}>
             <AppHeader
                 title="Student Pass"
                 onBack={() => navigation.goBack()}
-                rightIcon="download-outline"
+                rightIcon="refresh"
+                onRightPress={onRefresh}
             />
 
-            <View style={styles.content}>
-                <View style={styles.cardWrapper}>
-                    <LinearGradient
-                        colors={[theme.colors.primary, theme.colors.secondary]}
-                        style={styles.idCard}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                    >
-                        <MaterialCommunityIcons name="lightning-bolt" size={150} color="rgba(255,255,255,0.05)" style={styles.bgIcon} />
+            <ScrollView
+                contentContainerStyle={styles.content}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            >
+                {loading ? (
+                    <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 50 }} />
+                ) : (
+                    <>
+                        <View style={styles.cardWrapper}>
+                            <LinearGradient
+                                colors={[theme.colors.primary, theme.colors.secondary]}
+                                style={styles.idCard}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <MaterialCommunityIcons name="lightning-bolt" size={150} color="rgba(255,255,255,0.05)" style={styles.bgIcon} />
 
-                        <View style={styles.topSection}>
-                            <View style={styles.logoWrapper}>
-                                <MaterialCommunityIcons name="school-outline" size={30} color={theme.colors.primary} />
-                            </View>
-                            <View style={styles.schoolInfo}>
-                                <Text style={styles.schoolName}>BYJU'S LEARNING</Text>
-                                <Text style={styles.schoolSub}>Campus Academy</Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.profileSection}>
-                            <View style={styles.avatarContainer}>
-                                <View style={styles.avatarInner}>
-                                    <Text style={styles.avatarText}>{userInfo?.name?.charAt(0) || 'S'}</Text>
+                                <View style={styles.topSection}>
+                                    <View style={styles.logoWrapper}>
+                                        <MaterialCommunityIcons name="school-outline" size={30} color={theme.colors.primary} />
+                                    </View>
+                                    <View style={styles.schoolInfo}>
+                                        <Text style={styles.schoolName}>BYJU'S LEARNING</Text>
+                                        <Text style={styles.schoolSub}>Campus Academy</Text>
+                                    </View>
                                 </View>
-                            </View>
-                            <Text style={styles.userName}>{userInfo?.name || 'Academic Scholar'}</Text>
-                            <View style={styles.roleBadge}>
-                                <Text style={styles.roleText}>{userInfo?.role || 'Student'}</Text>
-                            </View>
-                        </View>
 
-                        <View style={styles.detailsGrid}>
-                            <View style={styles.detailBox}>
-                                <Text style={styles.detailLabel}>REG ID</Text>
-                                <Text style={styles.detailValue}>{userInfo?._id?.slice(-8)?.toUpperCase() || 'BJS-2024'}</Text>
-                            </View>
-                            <View style={styles.detailBox}>
-                                <Text style={styles.detailLabel}>BATCH</Text>
-                                <Text style={styles.detailValue}>2025-2026</Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.qrContainer}>
-                            <View style={styles.qrBg}>
-                                <QRCode value={qrValue} size={90} color={theme.colors.primary} />
-                            </View>
-                            <View style={styles.qrInfo}>
-                                <Text style={styles.statusLabel}>STATUS</Text>
-                                <View style={styles.statusIndicator}>
-                                    <View style={styles.greenDot} />
-                                    <Text style={styles.statusText}>ACTIVE PASS</Text>
+                                <View style={styles.profileSection}>
+                                    <View style={styles.avatarContainer}>
+                                        <View style={styles.avatarInner}>
+                                            <Text style={styles.avatarText}>{studentProfile?.name?.charAt(0) || 'S'}</Text>
+                                        </View>
+                                    </View>
+                                    <Text style={styles.userName}>{studentProfile?.name || 'Academic Scholar'}</Text>
+                                    <View style={styles.roleBadge}>
+                                        <Text style={styles.roleText}>{studentProfile?.role || 'Student'}</Text>
+                                    </View>
                                 </View>
-                                <Text style={styles.validText}>Expires Aug 2026</Text>
-                            </View>
-                        </View>
-                    </LinearGradient>
-                </View>
 
-                <View style={styles.instructionCard}>
-                    <MaterialCommunityIcons name="information-outline" size={20} color={theme.colors.textLight} />
-                    <Text style={styles.instructionText}>
-                        Present this digital ID for campus entry and library access.
-                    </Text>
-                </View>
-            </View>
+                                <View style={styles.detailsGrid}>
+                                    <View style={styles.detailBox}>
+                                        <Text style={styles.detailLabel}>REG ID</Text>
+                                        <Text style={styles.detailValue}>{studentProfile?._id?.slice(-8)?.toUpperCase() || '---'}</Text>
+                                    </View>
+                                    <View style={styles.detailBox}>
+                                        <Text style={styles.detailLabel}>CLASS / BATCH</Text>
+                                        <Text style={styles.detailValue}>{studentClass}</Text>
+                                    </View>
+                                </View>
+
+                                <View style={[styles.detailsGrid, { marginTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', paddingTop: 10 }]}>
+                                    <View style={styles.detailBox}>
+                                        <Text style={styles.detailLabel}>MOBILE</Text>
+                                        <Text style={styles.detailValue}>{studentProfile?.mobileNumber || 'N/A'}</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.qrContainer}>
+                                    <View style={styles.qrBg}>
+                                        <QRCode value={qrValue} size={80} color={theme.colors.primary} />
+                                    </View>
+                                    <View style={styles.qrInfo}>
+                                        <Text style={styles.statusLabel}>STATUS</Text>
+                                        <View style={styles.statusIndicator}>
+                                            <View style={[styles.greenDot, { backgroundColor: studentProfile?.feeStatus === 'Overdue' ? theme.colors.error : theme.colors.green }]} />
+                                            <Text style={styles.statusText}>{studentProfile?.feeStatus === 'Overdue' ? 'FEES OVERDUE' : 'ACTIVE PASS'}</Text>
+                                        </View>
+                                        <Text style={styles.validText}>Valid for current session</Text>
+                                    </View>
+                                </View>
+                            </LinearGradient>
+                        </View>
+
+                        <View style={styles.instructionCard}>
+                            <MaterialCommunityIcons name="information-outline" size={20} color={theme.colors.textLight} />
+                            <Text style={styles.instructionText}>
+                                Present this digital ID for campus entry, library access, and during examinations.
+                            </Text>
+                        </View>
+                    </>
+                )}
+            </ScrollView>
         </SafeAreaView>
     );
 };
@@ -104,37 +170,13 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#fff'
     },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 15,
-        paddingVertical: 15,
-        justifyContent: 'space-between'
-    },
-    backButton: {
-        marginRight: 10
-    },
-    headerTitle: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: theme.colors.text
-    },
-    shareBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        backgroundColor: theme.colors.primary + '10',
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
     content: {
-        flex: 1,
         alignItems: 'center',
-        paddingTop: 20
+        paddingTop: 20,
+        paddingBottom: 40
     },
     cardWrapper: {
         width: width * 0.85,
-        height: 520,
         borderRadius: 32,
         elevation: 15,
         shadowColor: theme.colors.primary,
@@ -145,9 +187,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff'
     },
     idCard: {
-        flex: 1,
         padding: 25,
-        justifyContent: 'space-between'
     },
     bgIcon: {
         position: 'absolute',
@@ -158,7 +198,8 @@ const styles = StyleSheet.create({
     topSection: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 15
+        gap: 15,
+        marginBottom: 20
     },
     logoWrapper: {
         width: 54,
@@ -186,7 +227,7 @@ const styles = StyleSheet.create({
     },
     profileSection: {
         alignItems: 'center',
-        marginVertical: 10
+        marginBottom: 25
     },
     avatarContainer: {
         width: 100,
@@ -212,7 +253,8 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 22,
         fontWeight: 'bold',
-        marginBottom: 6
+        marginBottom: 6,
+        textAlign: 'center'
     },
     roleBadge: {
         backgroundColor: '#FFB800',
@@ -255,7 +297,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         padding: 15,
         borderRadius: 24,
-        gap: 15
+        gap: 15,
+        marginTop: 20
     },
     qrBg: {
         padding: 5,

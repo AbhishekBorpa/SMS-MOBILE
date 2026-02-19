@@ -146,30 +146,24 @@ const FeeStatusScreen = ({ navigation }) => {
             return;
         }
 
-        setPaying(true);
-        try {
-            const token = await SecureStore.getItemAsync('userToken');
-            const config = { headers: { Authorization: `Bearer ${token}` } };
-            const { data } = await axios.post(`${API_URL}/fees/upi/initiate`, { amount: feeData.feeAmount }, config);
-
-            if (data.upiDeepLink) {
-                const supported = await Linking.canOpenURL(data.upiDeepLink);
-                if (supported) {
-                    await Linking.openURL(data.upiDeepLink);
-                    // Optionally, you might want to show a message to check payment status
-                    Alert.alert('Payment Initiated', 'Please complete the payment in your UPI app. You can check the status on this screen later.');
-                } else {
-                    Alert.alert('Error', 'No UPI app found to handle the payment. Please install a UPI app or try another method.');
+        Alert.alert(
+            'Pay via UPI',
+            `To pay ₹${feeData.feeAmount}, please scan the school QR code or use the VPA: neuralv@upi.\n\nAfter payment, please contact the admin with your Transaction ID.`,
+            [
+                { text: 'Okay', style: 'cancel' },
+                {
+                    text: 'Open UPI App',
+                    onPress: async () => {
+                        const upiUrl = `upi://pay?pa=neuralv@upi&pn=NeuralV&am=${feeData.feeAmount}&cu=INR`;
+                        try {
+                            await Linking.openURL(upiUrl);
+                        } catch (err) {
+                            Alert.alert('Error', 'Could not open UPI app');
+                        }
+                    }
                 }
-            } else {
-                Alert.alert('Error', 'Failed to get UPI payment link from server.');
-            }
-        } catch (error) {
-            console.log('UPI payment initiation error:', error.response?.data || error.message);
-            Alert.alert('Error', error.response?.data?.message || 'Failed to initiate UPI payment. Please try again.');
-        } finally {
-            setPaying(false);
-        }
+            ]
+        );
     };
 
     if (loading) {

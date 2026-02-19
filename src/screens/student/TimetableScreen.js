@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppBadge from '../../components/AppBadge';
 import AppCard from '../../components/AppCard';
@@ -63,6 +63,16 @@ const TimetableScreen = ({ navigation }) => {
                     </View>
                 ))}
             </View>
+
+            {item.meetingLink ? (
+                <TouchableOpacity
+                    style={styles.joinBtn}
+                    onPress={() => Linking.openURL(item.meetingLink)}
+                >
+                    <MaterialCommunityIcons name="video" size={20} color="#fff" />
+                    <Text style={styles.joinBtnText}>Join Online Class</Text>
+                </TouchableOpacity>
+            ) : null}
         </AppCard>
     );
 
@@ -115,7 +125,9 @@ const styles = StyleSheet.create({
     dayBubble: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
     day: { fontWeight: 'bold', fontSize: 11 },
     timeContainer: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 8 },
-    time: { fontSize: 14, color: theme.colors.text, fontWeight: '600' }
+    time: { fontSize: 14, color: theme.colors.text, fontWeight: '600' },
+    joinBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.primary, padding: 12, borderRadius: 12, marginTop: 15, gap: 8 },
+    joinBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 }
 });
 
 export default TimetableScreen;

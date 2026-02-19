@@ -2,116 +2,121 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AppBadge from '../../components/AppBadge';
-import AppCard from '../../components/AppCard';
 import AppHeader from '../../components/AppHeader';
+import EmptyState from '../../components/EmptyState';
 import API_URL from '../../config/api';
 import { theme } from '../../constants/theme';
 
 const ChatListScreen = ({ navigation }) => {
-    const [targets, setTargets] = useState([]);
+    const [contacts, setContacts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
-        fetchTargets();
+        fetchContacts();
     }, []);
 
-    const fetchTargets = async () => {
+    const fetchContacts = async () => {
         try {
             const token = await SecureStore.getItemAsync('userToken');
             const config = { headers: { Authorization: `Bearer ${token}` } };
             const { data } = await axios.get(`${API_URL}/messages/targets`, config);
-            setTargets(data);
+            setContacts(data);
         } catch (error) {
-            console.log(error);
+            console.error(error);
         } finally {
             setLoading(false);
         }
     };
 
+    const filteredContacts = contacts.filter(c =>
+        c.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     const renderItem = ({ item }) => (
-        <AppCard
-            padding={16}
-            style={styles.card}
+        <TouchableOpacity
+            style={styles.chatItem}
             onPress={() => navigation.navigate('Chat', { userId: item._id, resultName: item.name })}
         >
-            <View style={styles.avatarWrapper}>
-                <View style={[styles.avatar, { backgroundColor: theme.colors.primary + '15' }]}>
-                    <Text style={[styles.avatarText, { color: theme.colors.primary }]}>
-                        {(item.name?.charAt(0) || '?').toUpperCase()}
-                    </Text>
-                </View>
-                <View style={styles.statusDot} />
+            <View style={styles.avatarContainer}>
+                <Image
+                    source={{ uri: `https://ui-avatars.com/api/?name=${item.name}&background=random` }}
+                    style={styles.avatar}
+                />
+                <View style={styles.onlineBadge} />
             </View>
-            <View style={styles.infoContainer}>
-                <View style={styles.nameRow}>
-                    <Text style={styles.name}>{item.name}</Text>
-                    <AppBadge label={item.role} type="primary" />
+            <View style={styles.chatInfo}>
+                <View style={styles.chatHeader}>
+                    <Text style={styles.chatName}>{item.name}</Text>
+                    <Text style={styles.chatTime}>Now</Text>
                 </View>
-                <Text style={styles.lastMsg} numberOfLines={1}>Tap to start conversation</Text>
+                <Text style={styles.chatPreview} numberOfLines={1}>
+                    {item.role} • Tap to start chatting
+                </Text>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.border} />
-        </AppCard>
+        </TouchableOpacity>
     );
 
     return (
-        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        <SafeAreaView style={styles.container}>
             <AppHeader
-                title="Conversations"
+                title="Messages"
                 variant="primary"
                 onBack={() => navigation.goBack()}
-                rightIcon="message-plus-outline"
             />
 
-            <View style={styles.content}>
-                {loading ? (
-                    <View style={styles.center}><ActivityIndicator size="large" color={theme.colors.primary} /></View>
-                ) : targets.length === 0 ? (
-                    <View style={styles.center}>
-                        <MaterialCommunityIcons name="message-off-outline" size={64} color="#E0E0E0" />
-                        <Text style={styles.emptyText}>No active conversations yet.</Text>
-                    </View>
-                ) : (
-                    <FlatList
-                        data={targets}
-                        renderItem={renderItem}
-                        keyExtractor={(item) => item._id}
-                        contentContainerStyle={styles.list}
-                        showsVerticalScrollIndicator={false}
+            <View style={styles.searchContainer}>
+                <View style={styles.searchBar}>
+                    <MaterialCommunityIcons name="magnify" size={20} color={theme.colors.textLight} />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search contacts..."
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        placeholderTextColor={theme.colors.textLight}
                     />
-                )}
+                </View>
             </View>
+
+            {loading ? (
+                <View style={styles.center}><ActivityIndicator size="large" color={theme.colors.primary} /></View>
+            ) : (
+                <FlatList
+                    data={filteredContacts}
+                    renderItem={renderItem}
+                    keyExtractor={item => item._id}
+                    contentContainerStyle={styles.listContent}
+                    ListEmptyComponent={
+                        <EmptyState
+                            icon="account-search"
+                            title="No Contacts Found"
+                            description="You don't have any contacts to chat with yet."
+                        />
+                    }
+                />
+            )}
         </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
-    content: { flex: 1 },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-    list: { padding: 20 },
-    emptyText: { textAlign: 'center', marginTop: 15, color: theme.colors.textLight, fontSize: 16, fontWeight: '500' },
-    card: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, elevation: 2 },
-    avatarWrapper: { position: 'relative' },
-    avatar: { width: 56, height: 56, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
-    avatarText: { fontSize: 22, fontWeight: '900' },
-    statusDot: {
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        width: 14,
-        height: 14,
-        borderRadius: 7,
-        backgroundColor: theme.colors.green,
-        borderWidth: 2,
-        borderColor: '#fff'
-    },
-    infoContainer: { flex: 1, marginLeft: 15 },
-    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
-    name: { fontSize: 17, fontWeight: 'bold', color: theme.colors.text },
-    lastMsg: { fontSize: 14, color: theme.colors.textLight, fontWeight: '500' }
+    container: { flex: 1, backgroundColor: '#F9FAFB' },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    searchContainer: { padding: 15, backgroundColor: theme.colors.primary, paddingBottom: 25, borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
+    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 15, paddingVertical: 10 },
+    searchInput: { flex: 1, marginLeft: 10, fontSize: 15, color: theme.colors.text },
+    listContent: { padding: 15 },
+    chatItem: { flexDirection: 'row', padding: 15, backgroundColor: '#fff', borderRadius: 16, marginBottom: 12, ...theme.shadows.sm },
+    avatarContainer: { position: 'relative' },
+    avatar: { width: 50, height: 50, borderRadius: 25 },
+    onlineBadge: { position: 'absolute', bottom: 0, right: 0, width: 14, height: 14, borderRadius: 7, backgroundColor: theme.colors.success, borderWidth: 2, borderColor: '#fff' },
+    chatInfo: { flex: 1, marginLeft: 15, justifyContent: 'center' },
+    chatHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+    chatName: { fontSize: 16, fontWeight: 'bold', color: theme.colors.text },
+    chatTime: { fontSize: 12, color: theme.colors.textLight },
+    chatPreview: { fontSize: 13, color: theme.colors.textLight },
 });
 
 export default ChatListScreen;

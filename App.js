@@ -33,7 +33,6 @@ import TeachersListScreen from './src/screens/admin/TeachersListScreen';
 import TransportListScreen from './src/screens/admin/TransportListScreen';
 import VisitorLogScreen from './src/screens/admin/VisitorLogScreen';
 import AIChatScreen from './src/screens/ai/AIChatScreen';
-import PerformanceAnalysisScreen from './src/screens/ai/PerformanceAnalysisScreen';
 import AssignmentDetailScreen from './src/screens/assignment/AssignmentDetailScreen';
 import AssignmentsListScreen from './src/screens/assignment/AssignmentsListScreen';
 import AssignmentSubmissionsListScreen from './src/screens/assignment/AssignmentSubmissionsListScreen';
@@ -44,6 +43,7 @@ import ComplaintBoxScreen from './src/screens/ComplaintBoxScreen';
 import EventCalendarScreen from './src/screens/EventCalendarScreen';
 import GalleryListScreen from './src/screens/gallery/GalleryListScreen';
 import UploadPhotoScreen from './src/screens/gallery/UploadPhotoScreen';
+import AIReportCardScreen from './src/screens/student/AIReportCardScreen';
 import StudyMaterialListScreen from './src/screens/studyMaterial/StudyMaterialListScreen';
 import UploadMaterialScreen from './src/screens/studyMaterial/UploadMaterialScreen';
 
@@ -52,6 +52,9 @@ import CreateQuizScreen from './src/screens/quiz/CreateQuizScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import NoticeBoardScreen from './src/screens/NoticeBoardScreen';
 import PasswordResetScreen from './src/screens/PasswordResetScreen';
+import LeaderboardScreen from './src/screens/quiz/LeaderboardScreen';
+import QuizAttemptScreen from './src/screens/quiz/QuizAttemptScreen';
+import QuizListScreen from './src/screens/quiz/QuizListScreen';
 import RemarkInputScreen from './src/screens/remark/RemarkInputScreen';
 import StudentRemarksScreen from './src/screens/remark/StudentRemarksScreen';
 import AchievementsScreen from './src/screens/student/AchievementsScreen';
@@ -63,12 +66,9 @@ import ExamScheduleScreen from './src/screens/student/ExamScheduleScreen';
 import FeeStatusScreen from './src/screens/student/FeeStatusScreen';
 import GradeCalculatorScreen from './src/screens/student/GradeCalculatorScreen';
 import HealthWellnessScreen from './src/screens/student/HealthWellnessScreen';
-import LeaderboardScreen from './src/screens/student/LeaderboardScreen';
 import LibraryScreen from './src/screens/student/LibraryScreen';
 import LostFoundScreen from './src/screens/student/LostFoundScreen';
 import PerformanceAnalyticsScreen from './src/screens/student/PerformanceAnalyticsScreen';
-import QuizAttemptScreen from './src/screens/student/QuizAttemptScreen';
-import QuizListScreen from './src/screens/student/QuizListScreen';
 import StudentDashboard from './src/screens/student/StudentDashboard';
 import StudentLeaveScreen from './src/screens/student/StudentLeaveScreen';
 import StudyMaterialsScreen from './src/screens/student/StudyMaterialsScreen';
@@ -116,12 +116,13 @@ const AppNav = () => {
                             <Stack.Screen name="Main" component={MainTabNavigator} options={{ headerShown: false }} />
 
                             {/* Common Stack Screens (Push on top of Tabs) */}
+                            <Stack.Screen name="ChatList" component={ChatListScreen} options={{ headerShown: false }} />
                             <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
                             <Stack.Screen name="StudentDetail" component={StudentDetailScreen} options={{ headerShown: false }} />
                             <Stack.Screen name="NoticeBoard" component={NoticeBoardScreen} options={{ headerShown: false }} />
                             <Stack.Screen name="EventCalendar" component={EventCalendarScreen} options={{ headerShown: false }} />
                             <Stack.Screen name="AIChat" component={AIChatScreen} options={{ headerShown: false }} />
-                            <Stack.Screen name="PerformanceAnalysis" component={PerformanceAnalysisScreen} options={{ headerShown: false }} />
+                            <Stack.Screen name="AIReportCard" component={AIReportCardScreen} options={{ headerShown: false }} />
 
 
                             <Stack.Screen name="GalleryList" component={GalleryListScreen} options={{ headerShown: false }} />
