@@ -31,7 +31,7 @@
       ]
     },
     "web": {
-      "output": "static",
+      "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -56,11 +56,9 @@
           }
         }
       ],
-      "expo-font",
-      "expo-router"
+      "expo-font"
     ],
     "experiments": {
-      "typedRoutes": true,
       "reactCompiler": true
     },
     "extra": {

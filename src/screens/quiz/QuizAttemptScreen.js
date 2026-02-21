@@ -4,8 +4,8 @@ import * as SecureStore from 'expo-secure-store';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, BackHandler, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import API_URL from '../../../config/api';
-import { theme } from '../../../constants/theme';
+import API_URL from '../../config/api';
+import { theme } from '../../constants/theme';
 
 const QuizAttemptScreen = ({ route, navigation }) => {
     const { quizId } = route.params;

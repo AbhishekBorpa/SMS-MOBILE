@@ -4,8 +4,8 @@ import * as SecureStore from 'expo-secure-store';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import API_URL from '../../../config/api';
-import { theme } from '../../../constants/theme';
+import API_URL from '../../config/api';
+import { theme } from '../../constants/theme';
 
 const QuizListScreen = ({ navigation }) => {
     const [quizzes, setQuizzes] = useState([]);

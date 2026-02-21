@@ -68,7 +68,6 @@ import GradeCalculatorScreen from './src/screens/student/GradeCalculatorScreen';
 import HealthWellnessScreen from './src/screens/student/HealthWellnessScreen';
 import LibraryScreen from './src/screens/student/LibraryScreen';
 import LostFoundScreen from './src/screens/student/LostFoundScreen';
-import PerformanceAnalyticsScreen from './src/screens/student/PerformanceAnalyticsScreen';
 import StudentDashboard from './src/screens/student/StudentDashboard';
 import StudentLeaveScreen from './src/screens/student/StudentLeaveScreen';
 import StudyMaterialsScreen from './src/screens/student/StudyMaterialsScreen';
@@ -213,7 +212,6 @@ const AppNav = () => {
                                     <Stack.Screen name="Leaderboard" component={LeaderboardScreen} options={{ headerShown: false }} />
                                     <Stack.Screen name="StudyTimer" component={StudyTimerScreen} options={{ headerShown: false }} />
                                     <Stack.Screen name="GradeCalculator" component={GradeCalculatorScreen} options={{ headerShown: false }} />
-                                    <Stack.Screen name="PerformanceAnalytics" component={PerformanceAnalyticsScreen} options={{ headerShown: false }} />
                                     <Stack.Screen name="StudyMaterials" component={StudyMaterialsScreen} options={{ headerShown: false }} />
                                     <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ headerShown: false }} />
 
