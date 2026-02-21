@@ -20,7 +20,8 @@ import API_URL from '../../config/api';
 import { theme } from '../../constants/theme';
 import { AuthContext } from '../../context/AuthContext';
 
-const SOCKET_URL = API_URL; // Assuming Socket.IO server is on the same URL as the API
+// Remove '/api' from the end of the URL to connect to the root Socket.IO namespace
+const SOCKET_URL = API_URL.replace('/api', '');
 
 const ChatScreen = ({ route, navigation }) => {
     const { userId, resultName } = route.params;
