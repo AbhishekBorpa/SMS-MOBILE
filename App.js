@@ -25,6 +25,7 @@ import DesignSystemPreviewScreen from './src/screens/admin/DesignSystemPreviewSc
 import FeeManagementScreen from './src/screens/admin/FeeManagementScreen';
 import InventoryListScreen from './src/screens/admin/InventoryListScreen';
 import SchoolAnalyticsScreen from './src/screens/admin/SchoolAnalyticsScreen';
+import SettingsScreen from './src/screens/admin/SettingsScreen';
 import StaffStatusScreen from './src/screens/admin/StaffStatusScreen';
 import StudentDetailScreen from './src/screens/admin/StudentDetailScreen';
 import StudentsListScreen from './src/screens/admin/StudentsListScreen';
@@ -38,6 +39,7 @@ import AssignmentsListScreen from './src/screens/assignment/AssignmentsListScree
 import AssignmentSubmissionsListScreen from './src/screens/assignment/AssignmentSubmissionsListScreen';
 import CreateAssignmentScreen from './src/screens/assignment/CreateAssignmentScreen';
 import GradingScreen from './src/screens/assignment/GradingScreen';
+import ChatListScreen from './src/screens/chat/ChatListScreen';
 import ChatScreen from './src/screens/chat/ChatScreen';
 import ComplaintBoxScreen from './src/screens/ComplaintBoxScreen';
 import EventCalendarScreen from './src/screens/EventCalendarScreen';

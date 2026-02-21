@@ -31,8 +31,8 @@ const ChatListScreen = ({ navigation }) => {
         }
     };
 
-    const filteredContacts = contacts.filter(c =>
-        c.name.toLowerCase().includes(searchQuery.toLowerCase())
+    const filteredContacts = (Array.isArray(contacts) ? contacts : []).filter(c =>
+        c.name?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const renderItem = ({ item }) => (
