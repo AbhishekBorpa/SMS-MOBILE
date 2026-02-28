@@ -6,7 +6,9 @@ import {
     ActivityIndicator,
     Alert,
     FlatList,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -19,7 +21,6 @@ import AppCard from '../../components/AppCard';
 import AppHeader from '../../components/AppHeader';
 import AppInput from '../../components/AppInput';
 import EmptyState from '../../components/EmptyState';
-import KeyboardWrapper from '../../components/KeyboardWrapper';
 import API_URL from '../../config/api';
 import { theme } from '../../constants/theme';
 
@@ -165,7 +166,7 @@ const TeacherLeaveScreen = ({ navigation }) => {
                             </TouchableOpacity>
                         </View>
 
-                        <KeyboardWrapper backgroundColor="transparent">
+                        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                             <View style={styles.typeBlock}>
                                 <Text style={styles.sectionLabel}>LEAVE TYPE</Text>
                                 <View style={styles.typeRow}>
@@ -225,7 +226,7 @@ const TeacherLeaveScreen = ({ navigation }) => {
                                 icon="send-outline"
                                 style={styles.submitBtn}
                             />
-                        </KeyboardWrapper>
+                        </KeyboardAvoidingView>
                     </View>
                 </View>
             </Modal>

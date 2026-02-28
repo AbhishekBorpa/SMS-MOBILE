@@ -1,15 +1,14 @@
 import {
-    Keyboard,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
     StyleSheet,
-    TouchableWithoutFeedback,
 } from 'react-native';
 
 /**
  * A reusable component that handles keyboard avoidance and scrolling.
- * It also dismisses the keyboard when clicking outside of inputs.
+ * keyboardShouldPersistTaps="handled" ensures the keyboard is dismissed
+ * when tapping outside inputs WITHOUT blocking button press events.
  */
 const KeyboardWrapper = ({ children, backgroundColor = '#fff' }) => {
     return (
@@ -23,9 +22,7 @@ const KeyboardWrapper = ({ children, backgroundColor = '#fff' }) => {
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled"
             >
-                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    {children}
-                </TouchableWithoutFeedback>
+                {children}
             </ScrollView>
         </KeyboardAvoidingView>
     );

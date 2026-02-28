@@ -13,6 +13,7 @@ import { AuthContext, AuthProvider } from './src/context/AuthContext';
 import MainTabNavigator from './src/navigation/MainTabNavigator';
 import AddTeacherScreen from './src/screens/admin/AddTeacherScreen';
 import AddTransportScreen from './src/screens/admin/AddTransportScreen';
+import AdminAttendanceScreen from './src/screens/admin/AdminAttendanceScreen';
 import AdminAuditLogScreen from './src/screens/admin/AdminAuditLogScreen';
 import AdminComplaintScreen from './src/screens/admin/AdminComplaintScreen';
 import AdminDashboard from './src/screens/admin/AdminDashboard';
@@ -140,6 +141,9 @@ const AppNav = () => {
 
                             <Stack.Screen name="CreateQuiz" component={CreateQuizScreen} options={{ headerShown: false }} />
                             <Stack.Screen name="DesignSystem" component={DesignSystemPreviewScreen} options={{ headerShown: false }} />
+                            <Stack.Screen name="QuizList" component={QuizListScreen} options={{ headerShown: false }} />
+                            <Stack.Screen name="QuizAttempt" component={QuizAttemptScreen} options={{ headerShown: false }} />
+                            <Stack.Screen name="Leaderboard" component={LeaderboardScreen} options={{ headerShown: false }} />
 
                             {/* Admin Specific Stack Screens */}
                             {userInfo?.role === 'Admin' && (
@@ -165,6 +169,7 @@ const AppNav = () => {
                                     <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
                                     <Stack.Screen name="TransportList" component={TransportListScreen} options={{ headerShown: false }} />
                                     <Stack.Screen name="AddTransport" component={AddTransportScreen} options={{ headerShown: false }} />
+                                    <Stack.Screen name="AdminAttendance" component={AdminAttendanceScreen} options={{ headerShown: false }} />
                                 </>
                             )}
 
@@ -209,9 +214,6 @@ const AppNav = () => {
                                     <Stack.Screen name="ViewAttendance" component={ViewAttendanceScreen} options={{ headerShown: false }} />
                                     <Stack.Screen name="Achievements" component={AchievementsScreen} options={{ headerShown: false }} />
                                     <Stack.Screen name="HealthWellness" component={HealthWellnessScreen} options={{ headerShown: false }} />
-                                    <Stack.Screen name="QuizList" component={QuizListScreen} options={{ headerShown: false }} />
-                                    <Stack.Screen name="QuizAttempt" component={QuizAttemptScreen} options={{ headerShown: false }} />
-                                    <Stack.Screen name="Leaderboard" component={LeaderboardScreen} options={{ headerShown: false }} />
                                     <Stack.Screen name="StudyTimer" component={StudyTimerScreen} options={{ headerShown: false }} />
                                     <Stack.Screen name="GradeCalculator" component={GradeCalculatorScreen} options={{ headerShown: false }} />
                                     <Stack.Screen name="StudyMaterials" component={StudyMaterialsScreen} options={{ headerShown: false }} />

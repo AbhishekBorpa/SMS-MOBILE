@@ -9,8 +9,7 @@ import {
     ScrollView,
     StyleSheet,
     Text,
-    TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppCard from '../../components/AppCard';
@@ -19,8 +18,13 @@ import API_URL from '../../config/api';
 import { theme } from '../../constants/theme';
 import { AuthContext } from '../../context/AuthContext';
 
-const AIReportCardScreen = ({ navigation }) => {
+const AIReportCardScreen = ({ navigation, route }) => {
     const { userInfo } = useContext(AuthContext);
+    const { studentId, studentName } = route.params || {};
+
+    // Use parameters if provided (Admin view), otherwise use logged-in user's info
+    const targetUserId = studentId || userInfo._id;
+    const targetUserName = studentName || userInfo.name;
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [data, setData] = useState(null);
@@ -29,8 +33,8 @@ const AIReportCardScreen = ({ navigation }) => {
         try {
             const token = await SecureStore.getItemAsync('userToken');
             const config = { headers: { Authorization: `Bearer ${token}` } };
-            // Using the existing AI analyze endpoint
-            const response = await axios.get(`${API_URL}/ai/analyze/${userInfo._id}`, config);
+            // Using the existing AI analyze endpoint with the target ID
+            const response = await axios.get(`${API_URL}/ai/analyze/${targetUserId}`, config);
             setData(response.data);
         } catch (error) {
             console.error('Error fetching AI Report:', error);
@@ -109,7 +113,7 @@ const AIReportCardScreen = ({ navigation }) => {
                         <Text style={styles.gradeText}>{getGradeLetter(overallScore)}</Text>
                         <Text style={styles.scoreText}>{overallScore}%</Text>
                     </LinearGradient>
-                    <Text style={styles.studentName}>{userInfo.name}</Text>
+                    <Text style={styles.studentName}>{targetUserName}</Text>
                     <Text style={styles.termText}>Current Term Performance</Text>
                 </View>
 
@@ -179,7 +183,7 @@ const styles = StyleSheet.create({
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     loadingText: { marginTop: 10, fontSize: 16, color: theme.colors.textLight },
     scrollContent: { paddingBottom: 40 },
-    
+
     heroSection: { alignItems: 'center', marginBottom: 30, marginTop: 10 },
     gradeCircle: {
         width: 120, height: 120, borderRadius: 60,

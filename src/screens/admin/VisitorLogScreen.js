@@ -5,7 +5,9 @@ import {
     ActivityIndicator,
     Alert,
     FlatList,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     RefreshControl,
     StyleSheet,
     Text,
@@ -18,7 +20,6 @@ import AppCard from '../../components/AppCard';
 import AppHeader from '../../components/AppHeader';
 import AppInput from '../../components/AppInput';
 import EmptyState from '../../components/EmptyState';
-import KeyboardWrapper from '../../components/KeyboardWrapper';
 import API_URL from '../../config/api';
 import { theme } from '../../constants/theme';
 
@@ -130,7 +131,7 @@ const VisitorLogScreen = ({ navigation }) => {
             <Modal visible={modalVisible} animationType="slide" transparent={true}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
-                        <KeyboardWrapper backgroundColor="transparent">
+                        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                             <Text style={styles.modalTitle}>New Visitor Entry</Text>
 
                             <AppInput
@@ -163,7 +164,7 @@ const VisitorLogScreen = ({ navigation }) => {
                                 <AppButton title="Cancel" onPress={() => setModalVisible(false)} type="secondary" style={{ flex: 1, marginRight: 10 }} />
                                 <AppButton title="Log Entry" onPress={handleAddVisitor} style={{ flex: 1 }} />
                             </View>
-                        </KeyboardWrapper>
+                        </KeyboardAvoidingView>
                     </View>
                 </View>
             </Modal>

@@ -2,13 +2,14 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { useEffect, useState } from 'react';
-import { Dimensions, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Dimensions, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BarChart, LineChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppCard from '../../components/AppCard';
 import AppHeader from '../../components/AppHeader';
 import API_URL from '../../config/api';
 import { theme } from '../../constants/theme';
+import { formatCurrency, formatNumber, formatPercent } from '../../utils/formatters';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -51,11 +52,26 @@ const SchoolAnalyticsScreen = ({ navigation }) => {
         setRefreshing(false);
     };
 
-    if (loading || !data) {
+    if (loading) {
         return (
             <SafeAreaView style={styles.container}>
                 <AppHeader title="School Analytics" variant="primary" onBack={() => navigation.goBack()} />
-                <View style={styles.center}><Text>Loading Analytics...</Text></View>
+                <View style={styles.center}>
+                    <ActivityIndicator size="large" color={theme.colors.primary} />
+                    <Text style={{ marginTop: 10, color: theme.colors.textLight }}>Loading Analytics...</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    if (!data) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <AppHeader title="School Analytics" variant="primary" onBack={() => navigation.goBack()} />
+                <View style={styles.center}>
+                    <MaterialCommunityIcons name="alert-circle-outline" size={50} color={theme.colors.error} />
+                    <Text style={{ marginTop: 10, color: theme.colors.textLight }}>Failed to load analytics data.</Text>
+                </View>
             </SafeAreaView>
         );
     }
@@ -79,59 +95,99 @@ const SchoolAnalyticsScreen = ({ navigation }) => {
                 {/* 1. Revenue Trends (Line Chart) */}
                 <AppCard style={styles.chartCard} padding={20}>
                     <Text style={styles.chartTitle}>Revenue Growth (6 Months)</Text>
-                    <LineChart
-                        data={{
-                            labels: data.revenueTrend.labels,
-                            datasets: [{ data: data.revenueTrend.data }]
-                        }}
-                        width={screenWidth - 80}
-                        height={220}
-                        chartConfig={{
-                            ...chartConfig,
-                            color: (opacity = 1) => `rgba(0, 200, 83, ${opacity})`, // Green
-                        }}
-                        bezier
-                        style={styles.chart}
-                    />
+                    {data.revenueTrend?.data?.length > 0 && data.revenueTrend.data.some(val => val > 0) ? (
+                        <LineChart
+                            data={{
+                                labels: data.revenueTrend.labels,
+                                datasets: [{ data: data.revenueTrend.data }]
+                            }}
+                            width={screenWidth - 80}
+                            height={220}
+                            chartConfig={{
+                                ...chartConfig,
+                                color: (opacity = 1) => `rgba(0, 200, 83, ${opacity})`, // Green
+                                formatYLabel: (val) => formatCurrency(val, true),
+                            }}
+                            bezier
+                            style={styles.chart}
+                        />
+                    ) : (
+                        <View style={styles.emptyChart}><Text style={styles.noDataText}>No revenue data available yet</Text></View>
+                    )}
                 </AppCard>
 
-                {/* 2. Attendance Radar/Bar (Bar for simplicity first) */}
+                {/* 2. Attendance Stats (Bar Chart) */}
                 <AppCard style={styles.chartCard} padding={20}>
                     <Text style={styles.chartTitle}>Class Attendance (%)</Text>
-                    <BarChart
-                        data={{
-                            labels: data.attendanceStats.labels,
-                            datasets: [{ data: data.attendanceStats.data }]
-                        }}
-                        width={screenWidth - 80}
-                        height={220}
-                        yAxisLabel=""
-                        yAxisSuffix="%"
-                        chartConfig={{
-                            ...chartConfig,
-                            color: (opacity = 1) => `rgba(255, 109, 0, ${opacity})`, // Orange
-                        }}
-                        style={styles.chart}
-                        verticalLabelRotation={30}
-                    />
+                    {data.attendanceStats?.data?.length > 0 ? (
+                        <BarChart
+                            data={{
+                                labels: data.attendanceStats.labels,
+                                datasets: [{ data: data.attendanceStats.data }]
+                            }}
+                            width={screenWidth - 80}
+                            height={220}
+                            yAxisLabel=""
+                            yAxisSuffix="%"
+                            chartConfig={{
+                                ...chartConfig,
+                                color: (opacity = 1) => `rgba(255, 109, 0, ${opacity})`, // Orange
+                                formatYLabel: (val) => formatPercent(val),
+                            }}
+                            style={styles.chart}
+                            verticalLabelRotation={30}
+                        />
+                    ) : (
+                        <View style={styles.emptyChart}><Text style={styles.noDataText}>No attendance data available</Text></View>
+                    )}
+                </AppCard>
+
+                {/* 3. Academic Performance (Bar Chart) */}
+                <AppCard style={styles.chartCard} padding={20}>
+                    <Text style={styles.chartTitle}>Academic Performance (Avg %)</Text>
+                    {data.academicStats?.data?.length > 0 ? (
+                        <BarChart
+                            data={{
+                                labels: data.academicStats.labels,
+                                datasets: [{ data: data.academicStats.data }]
+                            }}
+                            width={screenWidth - 80}
+                            height={220}
+                            yAxisLabel=""
+                            yAxisSuffix="%"
+                            chartConfig={{
+                                ...chartConfig,
+                                color: (opacity = 1) => `rgba(124, 77, 255, ${opacity})`, // Deep Purple/Indigo
+                            }}
+                            style={styles.chart}
+                            verticalLabelRotation={30}
+                        />
+                    ) : (
+                        <View style={styles.emptyChart}><Text style={styles.noDataText}>No academic data available</Text></View>
+                    )}
                 </AppCard>
 
                 {/* 3. Enrollment Growth */}
                 <AppCard style={styles.chartCard} padding={20}>
                     <Text style={styles.chartTitle}>New Admissions</Text>
-                    <LineChart
-                        data={{
-                            labels: data.growthTrend.labels,
-                            datasets: [{ data: data.growthTrend.data }]
-                        }}
-                        width={screenWidth - 80}
-                        height={220}
-                        chartConfig={{
-                            ...chartConfig,
-                            color: (opacity = 1) => `rgba(41, 121, 255, ${opacity})`, // Blue
-                        }}
-                        style={styles.chart}
-                    />
+                    {data.growthTrend?.data?.length > 0 && data.growthTrend.data.some(val => val > 0) ? (
+                        <LineChart
+                            data={{
+                                labels: data.growthTrend.labels,
+                                datasets: [{ data: data.growthTrend.data }]
+                            }}
+                            width={screenWidth - 80}
+                            height={220}
+                            chartConfig={{
+                                ...chartConfig,
+                                color: (opacity = 1) => `rgba(41, 121, 255, ${opacity})`, // Blue
+                                formatYLabel: (val) => formatNumber(val),
+                            }}
+                            style={styles.chart}
+                        />
+                    ) : (
+                        <View style={styles.emptyChart}><Text style={styles.noDataText}>No admission data available</Text></View>
+                    )}
                 </AppCard>
 
                 {/* 4. Faculty Leaderboard */}
@@ -164,8 +220,10 @@ const styles = StyleSheet.create({
     content: { padding: 20, paddingBottom: 100 },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     chartCard: { marginBottom: 20, overflow: 'hidden', alignItems: 'center' },
-    chartTitle: { fontSize: 16, fontWeight: 'bold', color: theme.colors.text, marginBottom: 15, alignSelf: 'flex-start' },
     chart: { borderRadius: 16 },
+    emptyChart: { height: 180, justifyContent: 'center', alignItems: 'center' },
+    noDataText: { color: theme.colors.textLight, fontSize: 13, fontStyle: 'italic' },
+    chartTitle: { fontSize: 16, fontWeight: 'bold', color: theme.colors.text, marginBottom: 15, alignSelf: 'flex-start' },
     sectionTitle: { fontSize: 18, fontWeight: '900', color: theme.colors.text, marginBottom: 15 },
     leaderboardList: { gap: 10 },
     leaderboardItem: { flexDirection: 'row', alignItems: 'center' },

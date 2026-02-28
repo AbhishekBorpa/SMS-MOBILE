@@ -9,6 +9,7 @@ import {
     Linking,
     Modal,
     RefreshControl,
+    ScrollView,
     StyleSheet,
     Text,
     View
@@ -20,7 +21,6 @@ import AppCard from '../../components/AppCard';
 import AppHeader from '../../components/AppHeader';
 import AppInput from '../../components/AppInput';
 import EmptyState from '../../components/EmptyState';
-import KeyboardWrapper from '../../components/KeyboardWrapper';
 import API_URL from '../../config/api';
 import { theme } from '../../constants/theme';
 
@@ -116,10 +116,10 @@ const PTMSchedulerScreen = ({ navigation }) => {
                 />
             )}
 
-            <Modal visible={modalVisible} animationType="slide" transparent={true}>
+            <Modal visible={modalVisible} animationType="slide" transparent={true} onRequestClose={() => setModalVisible(false)}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
-                        <KeyboardWrapper backgroundColor="transparent">
+                        <ScrollView showsVerticalScrollIndicator={false}>
                             <Text style={styles.modalTitle}>New Meeting Slot</Text>
 
                             <AppInput
@@ -151,7 +151,7 @@ const PTMSchedulerScreen = ({ navigation }) => {
                                 <AppButton title="Cancel" onPress={() => setModalVisible(false)} type="secondary" style={{ flex: 1, marginRight: 10 }} />
                                 <AppButton title="Create Slot" onPress={handleAddSlot} style={{ flex: 1 }} />
                             </View>
-                        </KeyboardWrapper>
+                        </ScrollView>
                     </View>
                 </View>
             </Modal>

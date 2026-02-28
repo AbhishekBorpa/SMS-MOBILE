@@ -2,12 +2,53 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import axios from 'axios';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    Animated,
+    FlatList,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppHeader from '../../components/AppHeader';
 import API_URL from '../../config/api';
 import { theme } from '../../constants/theme';
+
+// Animated toggle for each student
+const AttendanceToggle = ({ student, onToggle }) => {
+    const animVal = useRef(new Animated.Value(student.status === 'Present' ? 1 : 0)).current;
+
+    useEffect(() => {
+        Animated.spring(animVal, {
+            toValue: student.status === 'Present' ? 1 : 0,
+            useNativeDriver: false,
+            friction: 6,
+        }).start();
+    }, [student.status]);
+
+    const bgColor = animVal.interpolate({
+        inputRange: [0, 1],
+        outputRange: [theme.colors.error, theme.colors.success],
+    });
+    const thumbLeft = animVal.interpolate({ inputRange: [0, 1], outputRange: [3, 23] });
+
+    return (
+        <TouchableOpacity onPress={() => onToggle(student._id)} activeOpacity={0.8}>
+            <Animated.View style={[styles.toggle, { backgroundColor: bgColor }]}>
+                <Animated.View style={[styles.toggleThumb, { left: thumbLeft }]} />
+                <Text style={[styles.toggleLabel, student.status === 'Present' ? styles.toggleLabelLeft : styles.toggleLabelRight]}>
+                    {student.status === 'Present' ? 'P' : 'A'}
+                </Text>
+            </Animated.View>
+        </TouchableOpacity>
+    );
+};
 
 const TakeAttendanceScreen = ({ navigation }) => {
     const [classes, setClasses] = useState([]);
@@ -16,18 +57,14 @@ const TakeAttendanceScreen = ({ navigation }) => {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Filters
-    const [selectedGradeFilter, setSelectedGradeFilter] = useState(null);
     const [selectedSubjectFilter, setSelectedSubjectFilter] = useState(null);
+    const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
 
-    useEffect(() => {
-        fetchClasses();
-    }, []);
-
-    useEffect(() => {
-        filterClasses();
-    }, [classes, selectedGradeFilter, selectedSubjectFilter]);
+    useEffect(() => { fetchClasses(); }, []);
+    useEffect(() => { filterClasses(); }, [classes, selectedSubjectFilter]);
 
     const fetchClasses = async () => {
         setLoading(true);
@@ -45,32 +82,21 @@ const TakeAttendanceScreen = ({ navigation }) => {
 
     const filterClasses = () => {
         let result = classes;
-        if (selectedGradeFilter) {
-            result = result.filter(c => c.name.includes(selectedGradeFilter.replace(/\D/g, ''))); // Simple digit match
-        }
-        if (selectedSubjectFilter) {
-            result = result.filter(c => c.subject === selectedSubjectFilter);
-        }
+        if (selectedSubjectFilter) result = result.filter(c => c.subject === selectedSubjectFilter);
         setFilteredClasses(result);
     };
 
     const uniqueSubjects = [...new Set(classes.map(c => c.subject))].sort();
 
-    const fetchStudentsForClass = async (classItem) => {
+    const fetchStudentsForClass = (classItem) => {
         setSelectedClass(classItem);
-        setLoading(true);
-        try {
-            const initialData = classItem.students.map(student => ({
-                _id: student._id,
-                name: student.name,
-                status: 'Present'
-            }));
-            setStudents(initialData);
-        } catch (error) {
-            Alert.alert('Error', 'Failed to load students');
-        } finally {
-            setLoading(false);
-        }
+        const initialData = classItem.students.map(student => ({
+            _id: student._id,
+            name: student.name,
+            status: 'Present',
+        }));
+        setStudents(initialData);
+        setSearchQuery('');
     };
 
     const toggleStatus = (studentId) => {
@@ -90,20 +116,14 @@ const TakeAttendanceScreen = ({ navigation }) => {
         try {
             const token = await SecureStore.getItemAsync('userToken');
             const config = { headers: { Authorization: `Bearer ${token}` } };
-
-            const records = students.map(s => ({
-                student: s._id,
-                status: s.status
-            }));
-
+            const records = students.map(s => ({ student: s._id, status: s.status }));
             await axios.post(`${API_URL}/attendance`, {
                 classId: selectedClass._id,
-                date: new Date(),
+                date: attendanceDate,
                 records
             }, config);
-
-            Alert.alert('Success', 'Attendance recorded!', [
-                { text: 'OK', onPress: () => navigation.goBack() }
+            Alert.alert('✅ Submitted!', `Attendance for ${selectedClass.name} saved.`, [
+                { text: 'Done', onPress: () => navigation.goBack() }
             ]);
         } catch (error) {
             Alert.alert('Error', 'Failed to submit attendance');
@@ -112,51 +132,52 @@ const TakeAttendanceScreen = ({ navigation }) => {
         }
     };
 
+    // Live stats
+    const presentCount = students.filter(s => s.status === 'Present').length;
+    const absentCount = students.filter(s => s.status === 'Absent').length;
+    const pct = students.length > 0 ? Math.round((presentCount / students.length) * 100) : 0;
+
+    const filteredStudents = students.filter(s =>
+        s.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     const renderClassItem = ({ item }) => (
-        <TouchableOpacity style={styles.classCard} onPress={() => fetchStudentsForClass(item)}>
-            <LinearGradient
-                colors={['#fff', '#fafafa']}
-                style={styles.classCardContent}
-            >
-                <View style={[styles.iconCircle, { backgroundColor: theme.colors.primary + '10' }]}>
-                    <MaterialCommunityIcons name="google-classroom" size={26} color={theme.colors.primary} />
-                </View>
-                <View style={styles.classInfo}>
-                    <Text style={styles.classTitle}>{item.name}</Text>
-                    <Text style={styles.classSub}>{item.subject}</Text>
-                </View>
-                <MaterialCommunityIcons name="chevron-right" size={24} color="#ccc" />
-            </LinearGradient>
+        <TouchableOpacity style={styles.classCard} onPress={() => fetchStudentsForClass(item)} activeOpacity={0.85}>
+            <View style={[styles.classIconBox, { backgroundColor: theme.colors.primary + '12' }]}>
+                <MaterialCommunityIcons name="google-classroom" size={26} color={theme.colors.primary} />
+            </View>
+            <View style={styles.classInfo}>
+                <Text style={styles.classTitle}>{item.name}</Text>
+                <Text style={styles.classSub}>{item.subject} • {item.students?.length || 0} students</Text>
+            </View>
+            <View style={styles.classArrow}>
+                <MaterialCommunityIcons name="arrow-right-circle" size={28} color={theme.colors.primary + '60'} />
+            </View>
         </TouchableOpacity>
     );
 
     const renderStudentItem = ({ item }) => {
         const isPresent = item.status === 'Present';
+        const name = item?.name || 'Unknown Student';
+        const initials = name.split(' ').map(w => w ? w[0] : '').join('').slice(0, 2).toUpperCase() || '?';
         return (
             <TouchableOpacity
                 style={[styles.studentRow, isPresent ? styles.presentRow : styles.absentRow]}
                 onPress={() => toggleStatus(item._id)}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
             >
-                <View style={styles.studentInfo}>
-                    <View style={[styles.avatar, { backgroundColor: isPresent ? theme.colors.green + '15' : theme.colors.pink + '15' }]}>
-                        <Text style={[styles.avatarText, { color: isPresent ? theme.colors.green : theme.colors.pink }]}>
-                            {item.name.charAt(0)}
-                        </Text>
-                    </View>
-                    <Text style={[styles.studentName, { color: theme.colors.text }]}>
-                        {item.name}
+                <View style={[styles.avatar, { backgroundColor: isPresent ? '#E8F5E9' : '#FFEBEE' }]}>
+                    <Text style={[styles.avatarText, { color: isPresent ? theme.colors.success : theme.colors.error }]}>
+                        {initials}
                     </Text>
                 </View>
-
-                <View style={[styles.statusBadge, { backgroundColor: isPresent ? theme.colors.green : theme.colors.pink }]}>
-                    <MaterialCommunityIcons
-                        name={isPresent ? "check-circle-outline" : "close-circle-outline"}
-                        size={18}
-                        color="#fff"
-                    />
-                    <Text style={styles.statusText}>{item.status}</Text>
+                <View style={styles.studentInfo}>
+                    <Text style={[styles.studentName, !isPresent && styles.absentName]}>{name}</Text>
+                    <Text style={[styles.studentStatus, { color: isPresent ? theme.colors.success : theme.colors.error }]}>
+                        {isPresent ? 'Marked Present' : 'Marked Absent'}
+                    </Text>
                 </View>
+                <AttendanceToggle student={item} onToggle={toggleStatus} />
             </TouchableOpacity>
         );
     };
@@ -164,387 +185,223 @@ const TakeAttendanceScreen = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.container}>
             <AppHeader
-                title={selectedClass ? 'Mark Attendance' : 'Attendance'}
-                onBack={() => navigation.goBack()}
+                title={selectedClass ? selectedClass.name : 'Take Attendance'}
+                subtitle={selectedClass ? selectedClass.subject : 'Select a class to begin'}
+                onBack={() => selectedClass ? setSelectedClass(null) : navigation.goBack()}
                 rightIcon="calendar-check"
             />
 
-            <View style={styles.content}>
-                {loading ? (
-                    <View style={styles.center}>
-                        <ActivityIndicator size="large" color={theme.colors.primary} />
-                    </View>
-                ) : !selectedClass ? (
-                    <View style={styles.selectionContainer}>
-                        <Text style={styles.subtitle}>Select Your Class</Text>
-
-                        {/* Filters */}
-                        <View style={styles.filterContainer}>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
+            {loading ? (
+                <View style={styles.center}>
+                    <ActivityIndicator size="large" color={theme.colors.primary} />
+                </View>
+            ) : !selectedClass ? (
+                /* ——— Class Selection ——— */
+                <View style={{ flex: 1 }}>
+                    {/* Subject Filter */}
+                    <View style={styles.filterArea}>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+                            <TouchableOpacity
+                                style={[styles.chip, !selectedSubjectFilter && styles.activeChip]}
+                                onPress={() => setSelectedSubjectFilter(null)}
+                            >
+                                <Text style={[styles.chipText, !selectedSubjectFilter && styles.activeChipText]}>All</Text>
+                            </TouchableOpacity>
+                            {uniqueSubjects.map(s => (
                                 <TouchableOpacity
-                                    style={[styles.chip, !selectedGradeFilter && styles.activeChip]}
-                                    onPress={() => setSelectedGradeFilter(null)}
+                                    key={s}
+                                    style={[styles.chip, selectedSubjectFilter === s && styles.activeChip]}
+                                    onPress={() => setSelectedSubjectFilter(s === selectedSubjectFilter ? null : s)}
                                 >
-                                    <Text style={[styles.chipText, !selectedGradeFilter && styles.activeChipText]}>All Grades</Text>
+                                    <Text style={[styles.chipText, selectedSubjectFilter === s && styles.activeChipText]}>{s}</Text>
                                 </TouchableOpacity>
-                                {['9th', '10th', '11th', '12th'].map(g => (
-                                    <TouchableOpacity
-                                        key={g}
-                                        style={[styles.chip, selectedGradeFilter === g && styles.activeChip]}
-                                        onPress={() => setSelectedGradeFilter(g === selectedGradeFilter ? null : g)}
-                                    >
-                                        <Text style={[styles.chipText, selectedGradeFilter === g && styles.activeChipText]}>{g}</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </ScrollView>
-
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-                                <TouchableOpacity
-                                    style={[styles.chip, !selectedSubjectFilter && styles.activeChip]}
-                                    onPress={() => setSelectedSubjectFilter(null)}
-                                >
-                                    <Text style={[styles.chipText, !selectedSubjectFilter && styles.activeChipText]}>All Subjects</Text>
-                                </TouchableOpacity>
-                                {uniqueSubjects.map(s => (
-                                    <TouchableOpacity
-                                        key={s}
-                                        style={[styles.chip, selectedSubjectFilter === s && styles.activeChip]}
-                                        onPress={() => setSelectedSubjectFilter(s === selectedSubjectFilter ? null : s)}
-                                    >
-                                        <Text style={[styles.chipText, selectedSubjectFilter === s && styles.activeChipText]}>{s}</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </ScrollView>
-                        </View>
-
-                        <FlatList
-                            data={classes}
-                            renderItem={renderClassItem}
-                            keyExtractor={item => item._id}
-                            contentContainerStyle={styles.list}
-                            showsVerticalScrollIndicator={false}
-                        />
+                            ))}
+                        </ScrollView>
                     </View>
-                ) : (
-                    <View style={styles.attendanceContainer}>
-                        <View style={styles.stickyHeader}>
-                            <View style={styles.classHeader}>
-                                <View>
-                                    <Text style={styles.selectedClassText}>{selectedClass.name}</Text>
-                                    <Text style={styles.selectedSubjectText}>{selectedClass.subject}</Text>
-                                </View>
-                                <TouchableOpacity onPress={() => setSelectedClass(null)} style={styles.changeButton}>
-                                    <Text style={styles.changeButtonText}>Change</Text>
-                                </TouchableOpacity>
-                            </View>
 
-                            <View style={styles.quickActions}>
-                                <TouchableOpacity style={styles.actionBtn} onPress={() => markAll('Present')}>
-                                    <MaterialCommunityIcons name="check-all" size={20} color={theme.colors.green} />
-                                    <Text style={[styles.actionBtnText, { color: theme.colors.green }]}>All Present</Text>
-                                </TouchableOpacity>
-                                <View style={styles.dividerVertical} />
-                                <TouchableOpacity style={styles.actionBtn} onPress={() => markAll('Absent')}>
-                                    <MaterialCommunityIcons name="close-circle-outline" size={20} color={theme.colors.pink} />
-                                    <Text style={[styles.actionBtnText, { color: theme.colors.pink }]}>All Absent</Text>
-                                </TouchableOpacity>
+                    <FlatList
+                        data={filteredClasses}
+                        renderItem={renderClassItem}
+                        keyExtractor={item => item._id}
+                        contentContainerStyle={styles.classList}
+                        showsVerticalScrollIndicator={false}
+                        ListEmptyComponent={
+                            <View style={styles.emptyBox}>
+                                <MaterialCommunityIcons name="google-classroom" size={54} color={theme.colors.primary + '30'} />
+                                <Text style={styles.emptyText}>No classes found</Text>
                             </View>
+                        }
+                    />
+                </View>
+            ) : (
+                /* ——— Attendance Marking ——— */
+                <View style={{ flex: 1 }}>
+                    {/* Live Stats Bar */}
+                    <LinearGradient
+                        colors={theme.gradients.primary}
+                        style={styles.statsBanner}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                    >
+                        <View style={styles.statBox}>
+                            <Text style={styles.statVal}>{presentCount}</Text>
+                            <Text style={styles.statLbl}>Present</Text>
                         </View>
+                        <View style={styles.statSep} />
+                        <View style={styles.statBox}>
+                            <Text style={styles.statVal}>{absentCount}</Text>
+                            <Text style={styles.statLbl}>Absent</Text>
+                        </View>
+                        <View style={styles.statSep} />
+                        <View style={styles.statBox}>
+                            <Text style={styles.statVal}>{pct}%</Text>
+                            <Text style={styles.statLbl}>Rate</Text>
+                        </View>
+                        <View style={styles.statSep} />
+                        <View style={styles.statBox}>
+                            <Text style={styles.statVal}>{students.length}</Text>
+                            <Text style={styles.statLbl}>Total</Text>
+                        </View>
+                    </LinearGradient>
 
-                        <FlatList
-                            data={students}
-                            renderItem={renderStudentItem}
-                            keyExtractor={item => item._id}
-                            contentContainerStyle={styles.studentList}
-                            showsVerticalScrollIndicator={false}
-                        />
+                    {/* Progress Track */}
+                    <View style={styles.progressTrack}>
+                        <View style={[styles.progressFill, { width: `${pct}%` }]} />
+                    </View>
 
-                        <View style={styles.footerContainer}>
-                            <TouchableOpacity style={styles.submitButton} onPress={submitAttendance} disabled={submitting}>
-                                <LinearGradient
-                                    colors={[theme.colors.primary, theme.colors.secondary]}
-                                    style={styles.submitGradient}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                >
-                                    {submitting ? (
-                                        <ActivityIndicator color="#fff" />
-                                    ) : (
-                                        <Text style={styles.submitButtonText}>
-                                            Save Attendance ({students.filter(s => s.status === 'Present').length}/{students.length})
-                                        </Text>
-                                    )}
-                                </LinearGradient>
+                    {/* Controls */}
+                    <View style={styles.controls}>
+                        {/* Search */}
+                        <View style={styles.searchBox}>
+                            <MaterialCommunityIcons name="magnify" size={18} color={theme.colors.textLight} />
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Search students..."
+                                placeholderTextColor={theme.colors.textLight}
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                            />
+                        </View>
+                        {/* Quick Mark */}
+                        <View style={styles.quickMark}>
+                            <TouchableOpacity style={styles.markAllBtn} onPress={() => markAll('Present')}>
+                                <MaterialCommunityIcons name="check-all" size={16} color={theme.colors.success} />
+                                <Text style={[styles.markAllText, { color: theme.colors.success }]}>All P</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.markAllBtn, styles.markAllAbsent]} onPress={() => markAll('Absent')}>
+                                <MaterialCommunityIcons name="close-circle-outline" size={16} color={theme.colors.error} />
+                                <Text style={[styles.markAllText, { color: theme.colors.error }]}>All A</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
-                )}
-            </View>
+
+                    {/* Student List */}
+                    <FlatList
+                        data={filteredStudents}
+                        renderItem={renderStudentItem}
+                        keyExtractor={item => item._id}
+                        contentContainerStyle={styles.studentList}
+                        showsVerticalScrollIndicator={false}
+                    />
+
+                    {/* Footer Submit */}
+                    <View style={styles.footer}>
+                        <TouchableOpacity
+                            style={styles.submitBtn}
+                            onPress={submitAttendance}
+                            disabled={submitting}
+                            activeOpacity={0.9}
+                        >
+                            <LinearGradient
+                                colors={theme.gradients.primary}
+                                style={styles.submitGrad}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                            >
+                                {submitting ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <>
+                                        <MaterialCommunityIcons name="check-circle" size={20} color="#fff" />
+                                        <Text style={styles.submitText}>
+                                            Save — {presentCount}/{students.length} Present
+                                        </Text>
+                                    </>
+                                )}
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
         </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff'
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 15,
-        paddingVertical: 15,
-        justifyContent: 'space-between'
-    },
-    backButton: {
-        marginRight: 10
-    },
-    headerTitle: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: theme.colors.text
-    },
-    settingsBtn: {
-        padding: 5
-    },
-    content: {
-        flex: 1
-    },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    selectionContainer: {
-        flex: 1,
-        padding: 25
-    },
-    attendanceContainer: {
-        flex: 1
-    },
-    subtitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: theme.colors.text,
-        marginBottom: 15
-    },
-    filterContainer: {
-        marginBottom: 15
-    },
-    chipScroll: {
-        flexDirection: 'row',
-        marginBottom: 10
-    },
-    chip: {
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        backgroundColor: '#F3F4F6',
-        borderRadius: 20,
-        marginRight: 8,
-        borderWidth: 1,
-        borderColor: '#E5E7EB'
-    },
-    activeChip: {
-        backgroundColor: theme.colors.primary,
-        borderColor: theme.colors.primary
-    },
-    chipText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: theme.colors.textLight
-    },
-    activeChipText: {
-        color: '#fff'
-    },
-    emptyText: {
-        textAlign: 'center',
-        marginTop: 30,
-        color: theme.colors.textLight,
-        fontStyle: 'italic'
-    },
-    list: {
-        paddingBottom: 20
-    },
-    classCard: {
-        marginBottom: 16,
-        borderRadius: 20,
-        backgroundColor: '#fff',
-        borderWidth: 1,
-        borderColor: '#F0F0F0',
-        elevation: 3,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        overflow: 'hidden'
-    },
-    classCardContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 20
-    },
-    iconCircle: {
-        width: 54,
-        height: 54,
-        borderRadius: 18,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 16
-    },
-    classInfo: {
-        flex: 1
-    },
-    classTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: theme.colors.text
-    },
-    classSub: {
-        color: theme.colors.textLight,
-        fontSize: 14,
-        marginTop: 2
-    },
-    stickyHeader: {
-        backgroundColor: '#fff',
-        elevation: 4,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        zIndex: 10
-    },
-    classHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 25,
-        paddingVertical: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F5F6F8'
-    },
-    selectedClassText: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: theme.colors.text
-    },
-    selectedSubjectText: {
-        color: theme.colors.textLight,
-        fontSize: 14,
-        marginTop: 2
-    },
-    changeButton: {
-        backgroundColor: theme.colors.primary + '10',
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 12
-    },
-    changeButtonText: {
-        color: theme.colors.primary,
-        fontWeight: 'bold',
-        fontSize: 12
-    },
-    quickActions: {
-        flexDirection: 'row',
-        paddingVertical: 12,
-        paddingHorizontal: 10
-    },
-    actionBtn: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        paddingVertical: 4
-    },
-    actionBtnText: {
-        fontWeight: 'bold',
-        fontSize: 14
-    },
-    dividerVertical: {
-        width: 1,
-        backgroundColor: '#F0F0F0',
-        height: '100%'
-    },
-    studentList: {
-        padding: 20,
-        paddingTop: 10
-    },
-    studentRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 18,
-        borderRadius: 20,
-        marginBottom: 12,
-        backgroundColor: '#fff',
-        borderWidth: 1,
-        borderColor: '#F5F6F8',
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOpacity: 0.03,
-        shadowRadius: 5
-    },
-    presentRow: {
-        borderColor: theme.colors.green + '30'
-    },
-    absentRow: {
-        borderColor: theme.colors.pink + '30',
-        backgroundColor: '#FFF9F9'
-    },
-    studentInfo: {
-        flexDirection: 'row',
-        alignItems: 'center'
-    },
-    avatar: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 16
-    },
-    avatarText: {
-        fontWeight: 'bold',
-        fontSize: 18
-    },
-    studentName: {
-        fontSize: 16,
-        fontWeight: 'bold'
-    },
-    statusBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 14,
-        gap: 6
-    },
-    statusText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 12
-    },
-    footerContainer: {
-        padding: 20,
-        backgroundColor: '#fff',
-        borderTopWidth: 1,
-        borderTopColor: '#F5F6F8'
-    },
-    submitButton: {
-        borderRadius: 20,
-        overflow: 'hidden',
-        elevation: 5,
-        shadowColor: theme.colors.primary,
-        shadowOpacity: 0.3,
-        shadowRadius: 10
-    },
-    submitGradient: {
-        paddingVertical: 18,
-        alignItems: 'center'
-    },
-    submitButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold'
-    },
+    container: { flex: 1, backgroundColor: '#F4F6F8' },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+    // Class selection
+    filterArea: { paddingVertical: 14, paddingLeft: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+    chips: { gap: 8, paddingRight: 20 },
+    chip: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#F3F4F6', borderRadius: 20, borderWidth: 1, borderColor: '#E5E7EB' },
+    activeChip: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+    chipText: { fontSize: 12, fontWeight: '700', color: theme.colors.textLight },
+    activeChipText: { color: '#fff' },
+    classList: { padding: 20, paddingBottom: 40 },
+    classCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 18, borderRadius: 22, marginBottom: 14, borderWidth: 1, borderColor: '#F0F0F0', ...theme.shadows.sm },
+    classIconBox: { width: 52, height: 52, borderRadius: 17, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+    classInfo: { flex: 1 },
+    classTitle: { fontSize: 17, fontWeight: '800', color: theme.colors.text },
+    classSub: { fontSize: 13, color: theme.colors.textLight, marginTop: 3, fontWeight: '500' },
+    classArrow: { marginLeft: 10 },
+    emptyBox: { alignItems: 'center', marginTop: 60, gap: 12 },
+    emptyText: { fontSize: 16, color: theme.colors.textLight, fontWeight: '600' },
+
+    // Stats Banner
+    statsBanner: { flexDirection: 'row', paddingVertical: 18, paddingHorizontal: 20 },
+    statBox: { flex: 1, alignItems: 'center' },
+    statVal: { fontSize: 22, fontWeight: '900', color: '#fff' },
+    statLbl: { fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: '800', letterSpacing: 0.5, marginTop: 2 },
+    statSep: { width: 1, backgroundColor: 'rgba(255,255,255,0.2)', marginVertical: 4 },
+
+    // Progress
+    progressTrack: { height: 5, backgroundColor: '#E0E0E0' },
+    progressFill: { height: '100%', backgroundColor: theme.colors.success },
+
+    // Controls
+    controls: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+    searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#F4F6F8', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14 },
+    searchInput: { flex: 1, fontSize: 14, color: theme.colors.text, fontWeight: '500' },
+    quickMark: { flexDirection: 'row', gap: 6 },
+    markAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: '#E8F5E9', borderRadius: 12 },
+    markAllAbsent: { backgroundColor: '#FFEBEE' },
+    markAllText: { fontSize: 11, fontWeight: '800' },
+
+    // Student List
+    studentList: { padding: 16, paddingBottom: 120 },
+    studentRow: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 20, marginBottom: 10, backgroundColor: '#fff', borderWidth: 2, borderColor: '#F0F4F8', ...theme.shadows.sm },
+    presentRow: { borderColor: theme.colors.success + '30', backgroundColor: '#FAFFFE' },
+    absentRow: { borderColor: theme.colors.error + '30', backgroundColor: '#FFF9F9' },
+    avatar: { width: 46, height: 46, borderRadius: 23, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+    avatarText: { fontSize: 16, fontWeight: '900' },
+    studentInfo: { flex: 1 },
+    studentName: { fontSize: 15, fontWeight: '700', color: theme.colors.text },
+    absentName: { textDecorationLine: 'line-through', opacity: 0.6 },
+    studentStatus: { fontSize: 12, fontWeight: '600', marginTop: 3 },
+
+    // Toggle
+    toggle: { width: 48, height: 26, borderRadius: 13, justifyContent: 'center' },
+    toggleThumb: { position: 'absolute', width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', ...theme.shadows.sm },
+    toggleLabel: { position: 'absolute', fontSize: 10, fontWeight: '900', color: '#fff' },
+    toggleLabelLeft: { left: 6 },
+    toggleLabelRight: { right: 5 },
+
+    // Footer
+    footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: 'rgba(244,246,248,0.98)', borderTopWidth: 1, borderTopColor: '#E0E0E0' },
+    submitBtn: { borderRadius: 20, overflow: 'hidden', ...theme.shadows.lg },
+    submitGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 18 },
+    submitText: { color: '#fff', fontSize: 16, fontWeight: '900', letterSpacing: 0.5 },
 });
 
 export default TakeAttendanceScreen;

@@ -6,7 +6,9 @@ import {
     ActivityIndicator,
     Alert,
     FlatList,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -18,7 +20,6 @@ import AppCard from '../components/AppCard';
 import AppHeader from '../components/AppHeader';
 import AppInput from '../components/AppInput';
 import EmptyState from '../components/EmptyState';
-import KeyboardWrapper from '../components/KeyboardWrapper';
 import API_URL from '../config/api';
 import { theme } from '../constants/theme';
 import { AuthContext } from '../context/AuthContext';
@@ -176,7 +177,7 @@ const NoticeBoardScreen = ({ navigation }) => {
             <Modal visible={modalVisible} animationType="slide" transparent={true} onRequestClose={() => setModalVisible(false)}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
-                        <KeyboardWrapper backgroundColor="transparent">
+                        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>New Announcement</Text>
                                 <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeBtn}>
@@ -230,7 +231,7 @@ const NoticeBoardScreen = ({ navigation }) => {
                                 icon="bullhorn-variant-outline"
                                 style={styles.submitBtn}
                             />
-                        </KeyboardWrapper>
+                        </KeyboardAvoidingView>
                     </View>
                 </View>
             </Modal>

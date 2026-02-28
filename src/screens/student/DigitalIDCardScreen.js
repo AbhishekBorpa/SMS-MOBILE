@@ -5,6 +5,7 @@ import * as SecureStore from 'expo-secure-store';
 import { useContext, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
+    Animated,
     Dimensions,
     RefreshControl,
     ScrollView,
@@ -14,6 +15,7 @@ import {
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AppBadge from '../../components/AppBadge';
 import AppHeader from '../../components/AppHeader';
 import API_URL from '../../config/api';
 import { theme } from '../../constants/theme';
@@ -28,28 +30,45 @@ const DigitalIDCardScreen = ({ navigation }) => {
     const [studentProfile, setStudentProfile] = useState(userInfo);
     const [studentClass, setStudentClass] = useState('N/A');
 
+    // Float animation for the card
+    const floatAnim = new Animated.Value(0);
+
     useEffect(() => {
         fetchStudentDetails();
+        startFloatAnimation();
     }, []);
+
+    const startFloatAnimation = () => {
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(floatAnim, {
+                    toValue: 1,
+                    duration: 3000,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(floatAnim, {
+                    toValue: 0,
+                    duration: 3000,
+                    useNativeDriver: true,
+                })
+            ])
+        ).start();
+    };
 
     const fetchStudentDetails = async () => {
         try {
             const token = await SecureStore.getItemAsync('userToken');
             const config = { headers: { Authorization: `Bearer ${token}` } };
 
-            // 1. Refresh User Profile
             const userRes = await axios.get(`${API_URL}/auth/me`, config);
             setStudentProfile(userRes.data);
 
-            // 2. Fetch Class Info
             const classRes = await axios.get(`${API_URL}/classes/student`, config);
             if (classRes.data && classRes.data.length > 0) {
-                // If multiple classes, show the first one or combine them
                 setStudentClass(classRes.data[0].name);
             } else {
                 setStudentClass('Enrolled Student');
             }
-
         } catch (error) {
             console.log('Error fetching ID card details:', error);
         } finally {
@@ -70,6 +89,11 @@ const DigitalIDCardScreen = ({ navigation }) => {
         validParams: true
     });
 
+    const translateY = floatAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, -10]
+    });
+
     return (
         <SafeAreaView style={styles.container}>
             <AppHeader
@@ -81,28 +105,29 @@ const DigitalIDCardScreen = ({ navigation }) => {
 
             <ScrollView
                 contentContainerStyle={styles.content}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} />}
             >
                 {loading ? (
                     <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 50 }} />
                 ) : (
                     <>
-                        <View style={styles.cardWrapper}>
+                        <Animated.View style={[styles.cardWrapper, { transform: [{ translateY }] }]}>
                             <LinearGradient
-                                colors={[theme.colors.primary, theme.colors.secondary]}
+                                colors={theme.gradients.primary}
                                 style={styles.idCard}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 1 }}
                             >
-                                <MaterialCommunityIcons name="lightning-bolt" size={150} color="rgba(255,255,255,0.05)" style={styles.bgIcon} />
+                                {/* Background Decorative Icon */}
+                                <MaterialCommunityIcons name="shield-half-full" size={200} color="rgba(255,255,255,0.03)" style={styles.bgIcon} />
 
                                 <View style={styles.topSection}>
                                     <View style={styles.logoWrapper}>
-                                        <MaterialCommunityIcons name="school-outline" size={30} color={theme.colors.primary} />
+                                        <MaterialCommunityIcons name="school" size={28} color={theme.colors.primary} />
                                     </View>
                                     <View style={styles.schoolInfo}>
-                                        <Text style={styles.schoolName}>BYJU'S LEARNING</Text>
-                                        <Text style={styles.schoolSub}>Campus Academy</Text>
+                                        <Text style={styles.schoolName}>CAMPUS PASS</Text>
+                                        <Text style={styles.schoolSub}>Digital Identity</Text>
                                     </View>
                                 </View>
 
@@ -114,13 +139,14 @@ const DigitalIDCardScreen = ({ navigation }) => {
                                     </View>
                                     <Text style={styles.userName}>{studentProfile?.name || 'Academic Scholar'}</Text>
                                     <View style={styles.roleBadge}>
+                                        <MaterialCommunityIcons name="check-decagram" size={14} color="#fff" />
                                         <Text style={styles.roleText}>{studentProfile?.role || 'Student'}</Text>
                                     </View>
                                 </View>
 
                                 <View style={styles.detailsGrid}>
                                     <View style={styles.detailBox}>
-                                        <Text style={styles.detailLabel}>REG ID</Text>
+                                        <Text style={styles.detailLabel}>REGISTRATION ID</Text>
                                         <Text style={styles.detailValue}>{studentProfile?._id?.slice(-8)?.toUpperCase() || '---'}</Text>
                                     </View>
                                     <View style={styles.detailBox}>
@@ -129,33 +155,29 @@ const DigitalIDCardScreen = ({ navigation }) => {
                                     </View>
                                 </View>
 
-                                <View style={[styles.detailsGrid, { marginTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', paddingTop: 10 }]}>
-                                    <View style={styles.detailBox}>
-                                        <Text style={styles.detailLabel}>MOBILE</Text>
-                                        <Text style={styles.detailValue}>{studentProfile?.mobileNumber || 'N/A'}</Text>
-                                    </View>
-                                </View>
-
-                                <View style={styles.qrContainer}>
+                                <View style={styles.barcodeSection}>
                                     <View style={styles.qrBg}>
-                                        <QRCode value={qrValue} size={80} color={theme.colors.primary} />
+                                        <QRCode value={qrValue} size={90} color={theme.colors.primary} backgroundColor="transparent" />
                                     </View>
                                     <View style={styles.qrInfo}>
-                                        <Text style={styles.statusLabel}>STATUS</Text>
-                                        <View style={styles.statusIndicator}>
-                                            <View style={[styles.greenDot, { backgroundColor: studentProfile?.feeStatus === 'Overdue' ? theme.colors.error : theme.colors.green }]} />
-                                            <Text style={styles.statusText}>{studentProfile?.feeStatus === 'Overdue' ? 'FEES OVERDUE' : 'ACTIVE PASS'}</Text>
-                                        </View>
-                                        <Text style={styles.validText}>Valid for current session</Text>
+                                        <Text style={styles.statusLabel}>PASS STATUS</Text>
+                                        <AppBadge
+                                            label={studentProfile?.feeStatus === 'Overdue' ? 'FEES OVERDUE' : 'ACTIVE'}
+                                            type={studentProfile?.feeStatus === 'Overdue' ? 'error' : 'success'}
+                                            style={{ alignSelf: 'flex-start', marginVertical: 8 }}
+                                        />
+                                        <Text style={styles.validText}>Valid for {new Date().getFullYear()}-{new Date().getFullYear() + 1} Session</Text>
                                     </View>
                                 </View>
                             </LinearGradient>
-                        </View>
+                        </Animated.View>
 
                         <View style={styles.instructionCard}>
-                            <MaterialCommunityIcons name="information-outline" size={20} color={theme.colors.textLight} />
+                            <View style={styles.instructionIconWrapper}>
+                                <MaterialCommunityIcons name="line-scan" size={24} color={theme.colors.primary} />
+                            </View>
                             <Text style={styles.instructionText}>
-                                Present this digital ID for campus entry, library access, and during examinations.
+                                Scan this digital ID card at campus entry gates, library kiosks, and during official examinations.
                             </Text>
                         </View>
                     </>
@@ -168,47 +190,52 @@ const DigitalIDCardScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff'
+        backgroundColor: theme.colors.background
     },
     content: {
         alignItems: 'center',
-        paddingTop: 20,
+        paddingTop: 30,
         paddingBottom: 40
     },
     cardWrapper: {
-        width: width * 0.85,
-        borderRadius: 32,
-        elevation: 15,
+        width: width * 0.88,
+        borderRadius: 28,
+        elevation: 20,
         shadowColor: theme.colors.primary,
-        shadowOpacity: 0.3,
-        shadowRadius: 20,
-        shadowOffset: { width: 0, height: 10 },
-        overflow: 'hidden',
-        backgroundColor: '#fff'
+        shadowOpacity: 0.4,
+        shadowRadius: 25,
+        shadowOffset: { width: 0, height: 12 },
+        backgroundColor: '#fff',
+        marginBottom: 30
     },
     idCard: {
-        padding: 25,
+        borderRadius: 28,
+        padding: 24,
+        overflow: 'hidden'
     },
     bgIcon: {
         position: 'absolute',
-        top: -30,
-        right: -30,
+        top: '20%',
+        right: -50,
         transform: [{ rotate: '15deg' }]
     },
     topSection: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 15,
-        marginBottom: 20
+        marginBottom: 25
     },
     logoWrapper: {
-        width: 54,
-        height: 54,
-        borderRadius: 18,
+        width: 50,
+        height: 50,
+        borderRadius: 16,
         backgroundColor: '#fff',
         justifyContent: 'center',
         alignItems: 'center',
-        elevation: 5
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
     },
     schoolInfo: {
         flex: 1
@@ -217,25 +244,26 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 18,
         fontWeight: '900',
-        letterSpacing: 1
+        letterSpacing: 2
     },
     schoolSub: {
-        color: 'rgba(255,255,255,0.7)',
+        color: 'rgba(255,255,255,0.8)',
         fontSize: 12,
         fontWeight: '600',
-        marginTop: 2
+        lineHeight: 18,
+        textTransform: 'uppercase'
     },
     profileSection: {
         alignItems: 'center',
-        marginBottom: 25
+        marginBottom: 30
     },
     avatarContainer: {
         width: 100,
         height: 100,
         borderRadius: 50,
         backgroundColor: 'rgba(255,255,255,0.2)',
-        padding: 6,
-        marginBottom: 15
+        padding: 4,
+        marginBottom: 16
     },
     avatarInner: {
         flex: 1,
@@ -245,37 +273,43 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     avatarText: {
-        fontSize: 40,
-        fontWeight: 'bold',
+        fontSize: 42,
+        fontWeight: '900',
         color: theme.colors.primary
     },
     userName: {
         color: '#fff',
-        fontSize: 22,
-        fontWeight: 'bold',
-        marginBottom: 6,
+        fontSize: 24,
+        fontWeight: '900',
+        marginBottom: 8,
         textAlign: 'center'
     },
     roleBadge: {
-        backgroundColor: '#FFB800',
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.2)',
         paddingHorizontal: 16,
-        paddingVertical: 5,
-        borderRadius: 12
+        paddingVertical: 6,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
+        gap: 6
     },
     roleText: {
         color: '#fff',
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: 'bold',
-        textTransform: 'uppercase'
+        textTransform: 'uppercase',
+        letterSpacing: 1
     },
     detailsGrid: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        padding: 15,
+        backgroundColor: 'rgba(0,0,0,0.15)',
+        padding: 18,
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)'
+        borderColor: 'rgba(255,255,255,0.1)'
     },
     detailBox: {
         flex: 1
@@ -283,76 +317,78 @@ const styles = StyleSheet.create({
     detailLabel: {
         color: 'rgba(255,255,255,0.6)',
         fontSize: 10,
-        fontWeight: 'bold',
-        marginBottom: 4
+        fontWeight: '800',
+        marginBottom: 6,
+        letterSpacing: 0.5
     },
     detailValue: {
         color: '#fff',
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: 'bold'
     },
-    qrContainer: {
+    barcodeSection: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#fff',
-        padding: 15,
+        padding: 16,
         borderRadius: 24,
-        gap: 15,
-        marginTop: 20
+        gap: 20,
+        marginTop: 25,
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
     },
     qrBg: {
-        padding: 5,
-        backgroundColor: '#fff',
-        borderRadius: 15,
-        borderWidth: 1,
-        borderColor: '#F0F0F0'
+        padding: 8,
+        backgroundColor: theme.colors.primary + '10',
+        borderRadius: 16,
     },
     qrInfo: {
-        flex: 1
+        flex: 1,
+        justifyContent: 'center'
     },
     statusLabel: {
-        fontSize: 10,
-        fontWeight: 'bold',
+        fontSize: 11,
+        fontWeight: '800',
         color: theme.colors.textLight,
-        marginBottom: 4
-    },
-    statusIndicator: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        marginBottom: 8
-    },
-    greenDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: theme.colors.green
-    },
-    statusText: {
-        fontSize: 14,
-        fontWeight: '900',
-        color: theme.colors.text
+        letterSpacing: 0.5
     },
     validText: {
         color: theme.colors.textLight,
-        fontSize: 11,
-        fontWeight: '500'
+        fontSize: 12,
+        fontWeight: '600',
+        marginTop: 4
     },
     instructionCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F7F8FA',
-        padding: 15,
-        borderRadius: 16,
-        marginHorizontal: 30,
-        marginTop: 30,
-        gap: 10
+        backgroundColor: '#fff',
+        padding: 20,
+        borderRadius: 20,
+        width: width * 0.88,
+        gap: 15,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        borderWidth: 1,
+        borderColor: theme.colors.border
+    },
+    instructionIconWrapper: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: theme.colors.primary + '15',
+        justifyContent: 'center',
+        alignItems: 'center'
     },
     instructionText: {
         flex: 1,
-        fontSize: 12,
-        color: theme.colors.textLight,
-        lineHeight: 18
+        fontSize: 13,
+        color: theme.colors.text,
+        lineHeight: 20,
+        fontWeight: '500'
     }
 });
 

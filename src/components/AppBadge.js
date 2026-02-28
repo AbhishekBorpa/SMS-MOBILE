@@ -15,6 +15,7 @@ const AppBadge = ({
             case 'danger': return { bg: theme.colors.accent + '15', text: theme.colors.accent };
             case 'warning': return { bg: '#FFF9E6', text: '#F5A623' };
             case 'info': return { bg: theme.colors.blue + '15', text: theme.colors.blue };
+            case 'neutral': return { bg: '#F0F0F0', text: '#9E9E9E' };
             default: return { bg: theme.colors.primary + '15', text: theme.colors.primary };
         }
     };

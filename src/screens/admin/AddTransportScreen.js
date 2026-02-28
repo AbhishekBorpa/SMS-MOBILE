@@ -191,8 +191,8 @@ const AddTransportScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F9FAFB' },
     scrollContent: { padding: 20, paddingBottom: 50 },
-    sectionHeader: { flexDirection: 'row', justifySelf: 'space-between', alignItems: 'center', marginBottom: 10, marginTop: 10 },
-    sectionTitle: { fontSize: 16, fontWeight: 'bold', color: theme.colors.textStrongs },
+    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, marginTop: 10 },
+    sectionTitle: { fontSize: 16, fontWeight: 'bold', color: theme.colors.text },
     addText: { color: theme.colors.primary, fontWeight: 'bold' }, // Added style for Add Stop
     card: { marginBottom: 5 },
     stopCard: { marginBottom: 10, borderLeftWidth: 4, borderLeftColor: theme.colors.primary },

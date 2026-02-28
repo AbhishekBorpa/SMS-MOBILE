@@ -6,7 +6,9 @@ import {
     ActivityIndicator,
     Alert,
     FlatList,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -17,10 +19,11 @@ import AppButton from '../components/AppButton';
 import AppCard from '../components/AppCard';
 import AppHeader from '../components/AppHeader';
 import AppInput from '../components/AppInput';
-import KeyboardWrapper from '../components/KeyboardWrapper';
+import EmptyState from '../components/EmptyState';
 import API_URL from '../config/api';
 import { theme } from '../constants/theme';
 import { AuthContext } from '../context/AuthContext';
+import { formatDate } from '../utils/formatters';
 
 const EventCalendarScreen = ({ navigation }) => {
     const { userInfo } = useContext(AuthContext);
@@ -46,7 +49,7 @@ const EventCalendarScreen = ({ navigation }) => {
             const { data } = await axios.get(`${API_URL}/events`, config);
             setEvents(data);
         } catch (error) {
-            console.log(error);
+            console.log('Error fetching events:', error);
         } finally {
             setLoading(false);
         }
@@ -104,7 +107,7 @@ const EventCalendarScreen = ({ navigation }) => {
                 <View style={styles.cardContent}>
                     <View style={[styles.dateBox, { backgroundColor: theme.colors.primary + '10' }]}>
                         <Text style={[styles.dateMonth, { color: theme.colors.primary }]}>
-                            {eventDate.toLocaleString('default', { month: 'short' }).toUpperCase()}
+                            {eventDate.toLocaleString('en-IN', { month: 'short' }).toUpperCase()}
                         </Text>
                         <Text style={[styles.dateDay, { color: theme.colors.primary }]}>{eventDate.getDate()}</Text>
                     </View>
@@ -120,7 +123,7 @@ const EventCalendarScreen = ({ navigation }) => {
                         <Text style={styles.cardDesc} numberOfLines={2}>{item.description}</Text>
                         <View style={styles.metaRow}>
                             <MaterialCommunityIcons name="clock-outline" size={14} color={theme.colors.textLight} />
-                            <Text style={styles.metaText}>All Day Event</Text>
+                            <Text style={styles.metaText}>{formatDate(item.date, false)}</Text>
                         </View>
                     </View>
                 </View>
@@ -148,10 +151,11 @@ const EventCalendarScreen = ({ navigation }) => {
                         keyExtractor={item => item._id}
                         contentContainerStyle={styles.list}
                         ListEmptyComponent={
-                            <View style={styles.center}>
-                                <MaterialCommunityIcons name="calendar-blank-outline" size={64} color="#E0E0E0" />
-                                <Text style={styles.emptyText}>No upcoming events scheduled.</Text>
-                            </View>
+                            <EmptyState
+                                icon="calendar-blank-outline"
+                                title="No Upcoming Events"
+                                description="Check back later for school activities and holidays."
+                            />
                         }
                     />
                 )}
@@ -160,7 +164,7 @@ const EventCalendarScreen = ({ navigation }) => {
             <Modal visible={modalVisible} animationType="fade" transparent={true} onRequestClose={() => setModalVisible(false)}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
-                        <KeyboardWrapper backgroundColor="transparent">
+                        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>Schedule Event</Text>
                                 <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -197,7 +201,7 @@ const EventCalendarScreen = ({ navigation }) => {
                                 loading={submitting}
                                 style={{ marginTop: 10 }}
                             />
-                        </KeyboardWrapper>
+                        </KeyboardAvoidingView>
                     </View>
                 </View>
             </Modal>
@@ -209,7 +213,6 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
     content: { flex: 1 },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    emptyText: { textAlign: 'center', marginTop: 15, color: theme.colors.textLight, fontSize: 16, fontWeight: '500' },
     list: { padding: 20 },
     card: { marginBottom: 15, elevation: 2 },
     cardContent: { flexDirection: 'row' },
@@ -224,7 +227,17 @@ const styles = StyleSheet.create({
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     metaText: { fontSize: 11, color: theme.colors.textLight, fontWeight: 'bold', textTransform: 'uppercase' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: 20 },
-    modalContent: { width: '100%', elevation: 10 },
+    modalContent: {
+        width: '100%',
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        padding: 20,
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10
+    },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25 },
     modalTitle: { fontSize: 20, fontWeight: 'bold', color: theme.colors.text }
 });

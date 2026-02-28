@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import API_URL from '../../config/api';
 import { theme } from '../../constants/theme';
 import { AuthContext } from '../../context/AuthContext';
+import { formatNumber, formatPercent } from '../../utils/formatters';
 
 const StudentDashboard = ({ navigation }) => {
     const { logout, userInfo } = useContext(AuthContext);
@@ -147,7 +148,7 @@ const StudentDashboard = ({ navigation }) => {
                     <View style={styles.statCard}>
                         <LinearGradient colors={theme.gradients.success} style={styles.statGradient}>
                             <MaterialCommunityIcons name="calendar-check" size={24} color="#fff" />
-                            <Text style={styles.statValue}>{loading ? '...' : `${dashboardData.attendance}%`}</Text>
+                            <Text style={styles.statValue}>{loading ? '...' : formatPercent(dashboardData.attendance)}</Text>
                             <Text style={styles.statLabel}>Attendance</Text>
                         </LinearGradient>
                     </View>
@@ -161,7 +162,7 @@ const StudentDashboard = ({ navigation }) => {
                     <View style={styles.statCard}>
                         <LinearGradient colors={theme.gradients.blue} style={styles.statGradient}>
                             <MaterialCommunityIcons name="clipboard-text" size={24} color="#fff" />
-                            <Text style={styles.statValue}>{loading ? '...' : dashboardData.pendingAssignments}</Text>
+                            <Text style={styles.statValue}>{loading ? '...' : formatNumber(dashboardData.pendingAssignments)}</Text>
                             <Text style={styles.statLabel}>Pending</Text>
                         </LinearGradient>
                     </View>

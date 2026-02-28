@@ -9,6 +9,7 @@ import AppCard from '../../components/AppCard';
 import API_URL from '../../config/api';
 import { theme } from '../../constants/theme';
 import { AuthContext } from '../../context/AuthContext';
+import { formatNumber } from '../../utils/formatters';
 
 const TeacherDashboard = ({ navigation }) => {
     const { logout, userInfo } = useContext(AuthContext);
@@ -41,7 +42,7 @@ const TeacherDashboard = ({ navigation }) => {
 
             setStatsData({
                 schedule: `${classes.length} Total`,
-                students: studentIds.size.toString(),
+                students: formatNumber(studentIds.size),
                 pending: `${assignments.length} Items`
             });
         } catch (error) {

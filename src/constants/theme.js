@@ -6,6 +6,11 @@ export const theme = {
         success: '#00C853', // Green
         warning: '#FFAB00', // Amber
         error: '#D50000', // Red
+        // Aliases for convenience
+        green: '#00C853', // Same as success
+        danger: '#D50000', // Same as error
+        pink: '#FF4081', // Pinkish Red (from accent gradient)
+        blue: '#2962FF', // Same as info
         info: '#2962FF', // Blue
 
         background: '#F4F6F8', // Light Grey/Lavender tint

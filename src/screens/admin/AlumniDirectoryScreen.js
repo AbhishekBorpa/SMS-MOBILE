@@ -6,8 +6,10 @@ import {
     ActivityIndicator,
     Alert,
     FlatList,
+    KeyboardAvoidingView,
     Linking,
     Modal,
+    Platform,
     RefreshControl,
     StyleSheet,
     Text,
@@ -19,7 +21,6 @@ import AppCard from '../../components/AppCard';
 import AppHeader from '../../components/AppHeader';
 import AppInput from '../../components/AppInput';
 import EmptyState from '../../components/EmptyState';
-import KeyboardWrapper from '../../components/KeyboardWrapper';
 import API_URL from '../../config/api';
 import { theme } from '../../constants/theme';
 
@@ -123,7 +124,7 @@ const AlumniDirectoryScreen = ({ navigation }) => {
             <Modal visible={modalVisible} animationType="slide" transparent={true}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
-                        <KeyboardWrapper backgroundColor="transparent">
+                        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                             <Text style={styles.modalTitle}>Add Alumni</Text>
 
                             <AppInput
@@ -162,7 +163,7 @@ const AlumniDirectoryScreen = ({ navigation }) => {
                                 <AppButton title="Cancel" onPress={() => setModalVisible(false)} type="secondary" style={{ flex: 1, marginRight: 10 }} />
                                 <AppButton title="Save" onPress={handleAddAlumni} style={{ flex: 1 }} />
                             </View>
-                        </KeyboardWrapper>
+                        </KeyboardAvoidingView>
                     </View>
                 </View>
             </Modal>

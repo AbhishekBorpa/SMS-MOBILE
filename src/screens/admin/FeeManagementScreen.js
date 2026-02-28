@@ -6,7 +6,9 @@ import {
     ActivityIndicator,
     Alert,
     FlatList,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     StyleSheet,
     Text,
     TextInput,
@@ -17,9 +19,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AppButton from '../../components/AppButton';
 import AppCard from '../../components/AppCard';
 import AppHeader from '../../components/AppHeader';
-import KeyboardWrapper from '../../components/KeyboardWrapper';
 import API_URL from '../../config/api';
 import { theme } from '../../constants/theme';
+import { formatCurrency } from '../../utils/formatters';
 
 const FeeManagementScreen = ({ navigation }) => {
     const [students, setStudents] = useState([]);
@@ -97,7 +99,7 @@ const FeeManagementScreen = ({ navigation }) => {
 
                 <View style={styles.cardRight}>
                     <Text style={[styles.amount, { color: item.feeStatus === 'Paid' ? theme.colors.success : theme.colors.text }]}>
-                        ₹{item.feeAmount || 0}
+                        {formatCurrency(item.feeAmount)}
                     </Text>
                     <Text style={styles.statusLabel}>{item.feeStatus?.toUpperCase()}</Text>
                 </View>
@@ -118,6 +120,7 @@ const FeeManagementScreen = ({ navigation }) => {
                 variant="primary"
                 onBack={() => navigation.goBack()}
                 rightIcon="plus-circle-outline"
+                onRightPress={() => navigation.navigate('StudentsList')}
             />
 
             <View style={styles.content}>
@@ -131,12 +134,12 @@ const FeeManagementScreen = ({ navigation }) => {
                                 <View style={styles.summaryRow}>
                                     <View style={styles.summaryItem}>
                                         <Text style={styles.summaryLabel}>PENDING</Text>
-                                        <Text style={[styles.summaryValue, { color: theme.colors.warning }]}>₹{(totalPending / 1000).toFixed(1)}k</Text>
+                                        <Text style={[styles.summaryValue, { color: theme.colors.warning }]}>{formatCurrency(totalPending, true)}</Text>
                                     </View>
                                     <View style={styles.divider} />
                                     <View style={styles.summaryItem}>
                                         <Text style={styles.summaryLabel}>COLLECTED</Text>
-                                        <Text style={[styles.summaryValue, { color: theme.colors.success }]}>₹{(totalCollected / 1000).toFixed(1)}k</Text>
+                                        <Text style={[styles.summaryValue, { color: theme.colors.success }]}>{formatCurrency(totalCollected, true)}</Text>
                                     </View>
                                 </View>
                             </AppCard>
@@ -162,53 +165,55 @@ const FeeManagementScreen = ({ navigation }) => {
 
             <Modal visible={modalVisible} animationType="slide" transparent={true} onRequestClose={() => setModalVisible(false)}>
                 <View style={styles.modalOverlay}>
-                    <KeyboardWrapper backgroundColor="#fff" style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Update Payment Record</Text>
-                            <TouchableOpacity onPress={() => setModalVisible(false)}>
-                                <MaterialCommunityIcons name="close" size={24} color={theme.colors.textLight} />
-                            </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.studentSummary}>
-                            <Text style={styles.summaryName}>{selectedStudent?.name}</Text>
-                            <Text style={styles.summaryId}>Updating financial record</Text>
-                        </View>
-
-                        <Text style={styles.label}>TRANSACTION STATUS</Text>
-                        <View style={styles.row}>
-                            {['Pending', 'Paid', 'Overdue'].map(status => (
-                                <TouchableOpacity
-                                    key={status}
-                                    style={[styles.typeBtn, feeStatus === status && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]}
-                                    onPress={() => setFeeStatus(status)}
-                                >
-                                    <Text style={[styles.typeText, feeStatus === status && { color: '#fff', fontWeight: '900' }]}>{status?.toUpperCase()}</Text>
+                    <View style={styles.modalContent}>
+                        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>Update Payment Record</Text>
+                                <TouchableOpacity onPress={() => setModalVisible(false)}>
+                                    <MaterialCommunityIcons name="close" size={24} color={theme.colors.textLight} />
                                 </TouchableOpacity>
-                            ))}
-                        </View>
+                            </View>
 
-                        <Text style={styles.label}>AMOUNT (₹)</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={feeAmount}
-                            onChangeText={setFeeAmount}
-                            keyboardType="numeric"
-                        />
+                            <View style={styles.studentSummary}>
+                                <Text style={styles.summaryName}>{selectedStudent?.name}</Text>
+                                <Text style={styles.summaryId}>Updating financial record</Text>
+                            </View>
 
-                        <Text style={styles.label}>DUE DATE (YYYY-MM-DD)</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={feeDueDate}
-                            onChangeText={setFeeDueDate}
-                        />
+                            <Text style={styles.label}>TRANSACTION STATUS</Text>
+                            <View style={styles.row}>
+                                {['Pending', 'Paid', 'Overdue'].map(status => (
+                                    <TouchableOpacity
+                                        key={status}
+                                        style={[styles.typeBtn, feeStatus === status && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]}
+                                        onPress={() => setFeeStatus(status)}
+                                    >
+                                        <Text style={[styles.typeText, feeStatus === status && { color: '#fff', fontWeight: '900' }]}>{status?.toUpperCase()}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
 
-                        <AppButton
-                            title="Save Changes"
-                            onPress={handleUpdateFee}
-                            style={{ marginTop: 10, marginBottom: 20 }}
-                        />
-                    </KeyboardWrapper>
+                            <Text style={styles.label}>AMOUNT (₹)</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={feeAmount}
+                                onChangeText={setFeeAmount}
+                                keyboardType="numeric"
+                            />
+
+                            <Text style={styles.label}>DUE DATE (YYYY-MM-DD)</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={feeDueDate}
+                                onChangeText={setFeeDueDate}
+                            />
+
+                            <AppButton
+                                title="Save Changes"
+                                onPress={handleUpdateFee}
+                                style={{ marginTop: 10, marginBottom: 20 }}
+                            />
+                        </KeyboardAvoidingView>
+                    </View>
                 </View>
             </Modal>
         </SafeAreaView>

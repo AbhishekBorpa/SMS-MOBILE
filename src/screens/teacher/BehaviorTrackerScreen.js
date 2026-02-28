@@ -55,7 +55,7 @@ const BehaviorTrackerScreen = ({ navigation, route }) => {
 
             // Flatten students from all classes
             let allStudents = [];
-            classes.forEach(c => c.students.forEach(s => allStudents.push({ ...s, className: c.className })));
+            classes.forEach(c => c.students.forEach(s => allStudents.push({ ...s, className: c.name })));
 
             // Remove duplicates
             allStudents = Array.from(new Set(allStudents.map(a => a._id)))

@@ -9,6 +9,7 @@ import AppCard from '../../components/AppCard';
 import API_URL from '../../config/api';
 import { theme } from '../../constants/theme';
 import { AuthContext } from '../../context/AuthContext';
+import { formatCurrency, formatNumber } from '../../utils/formatters';
 
 const AdminDashboard = ({ navigation }) => {
     const { logout, userInfo } = useContext(AuthContext);
@@ -31,10 +32,10 @@ const AdminDashboard = ({ navigation }) => {
             const config = { headers: { Authorization: `Bearer ${token}` } };
             const { data } = await axios.get(`${API_URL}/users/stats`, config);
             setStatsData({
-                students: data.students?.toLocaleString() || '0',
-                teachers: data.teachers?.toLocaleString() || '0',
-                totalRevenue: data.totalRevenue ? `$${(data.totalRevenue / 1000).toFixed(1)}k` : '$0k',
-                activeClasses: data.activeClasses || '0',
+                students: formatNumber(data.students) || '0',
+                teachers: formatNumber(data.teachers) || '0',
+                totalRevenue: formatCurrency(data.totalRevenue, true),
+                activeClasses: formatNumber(data.activeClasses) || '0',
                 attendanceTrend: data.attendanceTrend || []
             });
         } catch (error) {
@@ -163,6 +164,7 @@ const AdminDashboard = ({ navigation }) => {
 
 const menuItems = [
     { title: 'Trends', icon: 'chart-line', screen: 'SchoolAnalytics', color: theme.colors.primary },
+    { title: 'Attendance', icon: 'calendar-check-outline', screen: 'AdminAttendance', color: '#00897B' },
     { title: 'Staff', icon: 'account-clock-outline', screen: 'StaffStatus', color: theme.colors.secondary },
     { title: 'Students', icon: 'account-group', screen: 'StudentsList', color: theme.colors.success },
     { title: 'Teachers', icon: 'account-tie', screen: 'TeachersList', color: theme.colors.info },

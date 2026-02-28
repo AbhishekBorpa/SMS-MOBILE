@@ -14,6 +14,7 @@ import AppHeader from '../../components/AppHeader';
 import EmptyState from '../../components/EmptyState';
 import API_URL from '../../config/api';
 import { theme } from '../../constants/theme';
+import { formatCurrency } from '../../utils/formatters';
 
 const FeeStatusScreen = ({ navigation }) => {
     const [feeData, setFeeData] = useState(null);
@@ -199,7 +200,7 @@ const FeeStatusScreen = ({ navigation }) => {
                             </View>
 
                             <Text style={styles.summaryLabel}>Total Payable Amount</Text>
-                            <Text style={styles.amountText}>₹{feeData.feeAmount?.toLocaleString()}</Text>
+                            <Text style={styles.amountText}>{formatCurrency(feeData.feeAmount)}</Text>
 
                             <View style={styles.divider} />
 
@@ -227,7 +228,7 @@ const FeeStatusScreen = ({ navigation }) => {
                                     <Text style={styles.detailTitle}>Academic Tuition Fees</Text>
                                     <Text style={styles.detailSub}>Includes Lab & Library Access</Text>
                                 </View>
-                                <Text style={styles.detailPrice}>₹{feeData.feeAmount}</Text>
+                                <Text style={styles.detailPrice}>{formatCurrency(feeData.feeAmount)}</Text>
                             </View>
                         </AppCard>
 

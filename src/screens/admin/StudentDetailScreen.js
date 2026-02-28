@@ -100,7 +100,7 @@ const StudentDetailScreen = ({ route, navigation }) => {
 
                     <TouchableOpacity
                         style={styles.aiBtn}
-                        onPress={() => navigation.navigate('PerformanceAnalysis', { studentId: student._id, studentName: student.name })}
+                        onPress={() => navigation.navigate('AIReportCard', { studentId: student._id, studentName: student.name })}
                     >
                         <MaterialCommunityIcons name="robot" size={18} color={theme.colors.primary} />
                         <Text style={styles.aiBtnText}>AI Performance Insight</Text>
